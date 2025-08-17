@@ -84,7 +84,10 @@ def test_post():
     print('data:', data)
     return {"status": "success", "received": data}
 
-if __name__ == "__main__":
+def init_app():
     create_template()
     database_man.do_all()
+
+if __name__ == "__main__":
+    init_app()
     app.run(debug=True, port=5000)
