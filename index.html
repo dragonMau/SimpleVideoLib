@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="%csrf_token%">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <title id="title_text">Chasidus TV</title>
+</head>
+
+<body>
+    <template id="playlist_item_template">
+        <li class="playlist-item">
+            <h5 class="playlist-item-name">PlaylistName</h5>
+        </li>
+    </template>
+    <template id="group_item_template">
+        <li class="group-item">
+            <input type="checkbox" class="group-dropdown">
+            <h3 class="group-item-name">GroupName</h3>
+            <div class="playlists">
+                <ul class="playlists-list">
+                    <!-- playlist_item_template -->
+                </ul>
+            </div>
+        </li>
+    </template>
+    <template id="video_item_template">
+        <li class="video-item">
+            <img class="video-item-image" alt="Video Preview" src="...">
+            <div class="video-item-meta">
+                <h4 class="video-item-title">VideoName</h4>
+                <p class="video-item-description">VideoDescription</p>
+            </div>
+        </li>
+    </template>
+    <header class="banner">
+        <h1 id="header_text">Yehi Adonenu</h1>
+    </header>
+    <main>
+        <div class="groups-video">
+            <div class="groups">
+                <h3 class="groups-head" id="groups_title">Groups:</h3>
+                <ul class="groups-list" id="groups_list">
+                    <!-- group_item_template -->
+                </ul>
+            </div>
+            <div class="video">
+                <h3 class="video-path" id="video_path_text">GroupName → PlaylistName</h3>
+                <div class="video-wrapper">
+                    <iframe id="player_iframe"></iframe>
+                </div>
+                <div class="video-meta">
+                    <h3 class="video-name" id="video_name">VideoName</h3>
+                    <p class="video-description" id="video_description">VideoDescription</p>
+                </div>
+            </div>
+        </div>
+        <div class="videos">
+            <h3 class="videos-head" id="videos_title">GroupName → PlaylistName</h3>
+            <ul class="videos-list" id="videos_list">
+                <!-- video_item_template -->
+            </ul>
+        </div>
+    </main>
+    <footer class="banner">
+        <h2 id="footer_text">We Want Mochiah Now</h2>
+    </footer>
+
+    <script src="/script.js"></script>
+</body>
+
+</html>
