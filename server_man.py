@@ -86,7 +86,5 @@ def test_post():
 
 if __name__ == "__main__":
     create_template()
-    if not "--update" in sys.argv: database_man.do_all()
-    else: 
-        database_man.init_db()
+    database_man.do_all()
     app.run(debug=True, port=5000)
