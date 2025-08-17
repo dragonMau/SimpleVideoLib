@@ -88,6 +88,6 @@ def init_app():
     create_template()
     database_man.do_all()
 
-init_app()d
+init_app()
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
