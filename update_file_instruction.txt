@@ -1,0 +1,10 @@
+cd /home/chasidustv/SimpleVideoLib
+git pull
+nano .env
+journalctl -u chasidustv -f
+systemctl start chasidustv
+systemctl status chasidustv
+systemctl restart chasidustv
+systemctl stop chasidustv
+
+commit on local

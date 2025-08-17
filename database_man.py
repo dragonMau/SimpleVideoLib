@@ -86,7 +86,7 @@ def update_playlist(playlist: str, vidid) -> int | None:
         cursor.execute("SELECT id, videos_ids FROM playlists WHERE name = ?", (playlist_name,))
         row = cursor.fetchone()
         if row:
-            playlist_id, videos_ids = row[0]
+            playlist_id, videos_ids = row
             blist = BlobList(videos_ids)
             blist.add(vidid)
             cursor.execute(
@@ -156,28 +156,49 @@ def add_to_db(vid: Video, playlists: str):
     for pl in playlists.split(';'):
         if not pl: continue
         update_playlist(pl, vidid)
-
+        
 def update_db():
     query = (
         'Subject:"chasidusTV" AND '
         # 'Uploader:"m.seligey321@gmail.com" AND '
         'Mediatype:movies'
     )
-    print(query)
-    search = ia.search_items(query)
-    print(search)
-    for s in search:
-        id_ = s["identifier"]
-        print(id_, end=': ')
-        item = ia.get_item(id_)
-        vid = Video(**item.metadata, archive_id=id_)
-        playlists = item.metadata.get("playlists")
-        print(vid)
-        print('playlists:', playlists)
-        if item.metadata.get("uploader") == "m.seligey321@gmail.com":
-            add_to_db(vid, playlists)
-        else:
-            print("not mine, uploader:", item.metadata.get("uploader"))
+    fields=[
+        'identifier',
+        'title',
+        'creator',
+        'date',
+        'mediatype',
+        'subject',
+        'description'
+    ]
+    params = {
+    'fl[]': fields,  # fields to fetch
+    'rows': 10,      # number of results per page
+    'page': 1        # starting page
+}
+    while True:
+        print(query)
+        search = ia.search_items(
+            query, 
+            params=params
+        )
+        print(search)
+        results = list(search)
+        if not results: break
+        params['page'] += 1
+        for s in results:
+            id_ = s["identifier"]
+            print(id_, end=': ')
+            item = ia.get_item(id_)
+            vid = Video(**(item.metadata | s), archive_id=id_)
+            playlists = item.metadata.get("playlists")
+            print(vid)
+            print('playlists:', playlists)
+            if item.metadata.get("uploader") == "m.seligey321@gmail.com":
+                add_to_db(vid, playlists)
+            else:
+                print("not mine, uploader:", item.metadata.get("uploader"))
 
 def print_db():
     with sqlite3.connect('archive.db') as conn:
