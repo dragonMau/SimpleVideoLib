@@ -8,3 +8,5 @@ systemctl restart chasidustv
 systemctl stop chasidustv
 
 commit on local
+then on vds:
+cd /home/chasidustv/SimpleVideoLib
