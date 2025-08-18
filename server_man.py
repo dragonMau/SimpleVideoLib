@@ -96,10 +96,10 @@ def set_csp(response):
     response.headers['Content-Security-Policy'] = (
         "default-src 'self';"
         "style-src 'self' 'unsafe-inline';"
-        "frame-src 'self' archive.org *archive.org;"
-        "img-src 'self' archive.org *archive.org;"
-        "connect-src 'self' archive.org *archive.org;"
-        "script-src 'self' 'unsafe-inline' archive.org *archive.org;"
+        "frame-src 'self' archive.org *.archive.org;"
+        "img-src 'self' archive.org *.archive.org;"
+        "connect-src 'self' archive.org *.archive.org;"
+        "script-src 'self' 'unsafe-inline' archive.org *.archive.org;"
     )
     return response
 # Example POST route to test CSRF (you can remove this if not needed)
