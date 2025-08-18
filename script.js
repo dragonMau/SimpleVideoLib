@@ -40,8 +40,19 @@ function createGroupElement(groupsList, groupTemplate, group_id, group_name) {
                     otherCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
                 }
             });
-            await initPlaylistElements(playlistsList, group_id);
+
+            const loadingIndicator = document
+                .getElementById("loading_indicator_template")
+                .content.firstElementChild
+                .cloneNode(true);
+            playlistsList.appendChild(loadingIndicator);
             playlistsWrap.style.height = playlistsList.scrollHeight+1 + "px";
+            
+            await initPlaylistElements(playlistsList, group_id);
+            
+            loadingIndicator.remove();
+            playlistsWrap.style.height = playlistsList.scrollHeight+1 + "px";
+
         } else {
             playlistsWrap.style.height = "0";
         }
@@ -65,14 +76,17 @@ function createPlaylistElement(playlistsList, playlistTemplate, playlist_id, pla
     const playlistItem = playlistTemplate.cloneNode(true);
     playlistItem.id = `playlist_${playlist_id}`;
     const playlistName = playlistItem.querySelector(".playlist-item-name");
-    playlistName.textContent = playlist_name;
+    playlistName.innerHTML = `${playlist_name}`;
 
     playlistItem.addEventListener("click", async () => {
 
         const videoHead = document.querySelector("#videos_title");
         const group_name = playlistItem.closest(".group-item").querySelector(".group-item-name").textContent;
-        videoHead.textContent = `${group_name} → ${playlist_name}`;
+        
+        playlistName.innerHTML = `${playlist_name} <span class="spinner"></spinner>`;
         await initVideoElemetns(playlist_id);
+        videoHead.textContent = `${group_name} → ${playlist_name}`;
+        playlistName.innerHTML = `${playlist_name}`;
 
         document.querySelectorAll(".selected").forEach(e => {
             e.classList.remove("selected");
@@ -93,20 +107,7 @@ function createVideoElement(videoList, videoTemplate, video_id, video_title, vid
     videoDescription.textContent = video_description;
     const videoImage = videoItem.querySelector(".video-item-image");
 
-    // videoImage.src = `https://archive.org/download/${archive_id}/__ia_thumb.jpg`;
     videoImage.src = `/thumb/${archive_id}`;
-    // fetch(`https://archive.org/download/${archive_id}/__ia_thumb.jpg`)
-    //     .then(response => response.blob())
-    //     .then(blob => {
-    //         const objectUrl = URL.createObjectURL(blob);
-    //         videoImage.src = objectUrl;
-    //     })
-    //     .catch(err => {
-    //         console.error("Failed to fetch image:", err);
-    //         videoImage.src = "fallback.jpg"; // optional fallback
-    //     });
-
-
 
     videoItem.dataset.archive_id = archive_id;
 

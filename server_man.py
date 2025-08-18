@@ -115,6 +115,13 @@ def init_app():
     create_template()
     database_man.do_all()
 
-init_app()
+def init_test():
+    create_template()
+    database_man.init_db()
+
+# init_app()
+init_test()
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
