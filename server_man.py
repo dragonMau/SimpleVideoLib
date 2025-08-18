@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import requests
 from flask_wtf.csrf import CSRFProtect
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 HOME_DIR = "./"
@@ -22,14 +23,6 @@ def create_template():
     
     with open(HOME_DIR + 'templates/index.html', 'w') as out_file:
         out_file.write(content.replace(r'%csrf_token%', '{{ csrf_token() }}'))
-
-# @app.after_request
-# def add_csp(response):
-#     csp = (
-
-#     )
-#     response.headers["Content-Security-Policy"] = csp
-#     return response
 
 @app.route("/")
 def serve_index():
@@ -85,7 +78,18 @@ def thumb_proxy(archive_id):
     r = requests.get(url, stream=True)
     if r.status_code != 200:
         return "Not found", 404
-    return Response(r.content, mimetype="image/jpeg")
+    
+    response = Response(r.content, mimetype="image/jpeg")
+
+     # Cache for 1 week
+    cache_duration = 7 * 24 * 60 * 60  # seconds
+    response.headers["Cache-Control"] = f"public, max-age={cache_duration}"
+    
+    # Optional: set Expires header
+    expires = datetime.now() + timedelta(seconds=cache_duration)
+    response.headers["Expires"] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    return response
 
 @app.after_request
 def set_csp(response):
