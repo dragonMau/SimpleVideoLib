@@ -92,7 +92,22 @@ function createVideoElement(videoList, videoTemplate, video_id, video_title, vid
     const videoDescription = videoItem.querySelector(".video-item-description");
     videoDescription.textContent = video_description;
     const videoImage = videoItem.querySelector(".video-item-image");
-    videoImage.src = `https://archive.org/download/${archive_id}/__ia_thumb.jpg`;
+
+    // videoImage.src = `https://archive.org/download/${archive_id}/__ia_thumb.jpg`;
+    videoImage.src = `/thumb/${archive_id}`;
+    // fetch(`https://archive.org/download/${archive_id}/__ia_thumb.jpg`)
+    //     .then(response => response.blob())
+    //     .then(blob => {
+    //         const objectUrl = URL.createObjectURL(blob);
+    //         videoImage.src = objectUrl;
+    //     })
+    //     .catch(err => {
+    //         console.error("Failed to fetch image:", err);
+    //         videoImage.src = "fallback.jpg"; // optional fallback
+    //     });
+
+
+
     videoItem.dataset.archive_id = archive_id;
 
     videoItem.addEventListener("click", () => {

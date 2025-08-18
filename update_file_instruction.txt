@@ -7,7 +7,13 @@ systemctl status chasidustv
 systemctl restart chasidustv
 systemctl stop chasidustv
 
-commit on local
-sync from local
+on local:
+    commit
+    sync
 then on vds:
-cd /home/chasidustv/SimpleVideoLib
+    cd /home/chasidustv/SimpleVideoLib
+    git pull
+    optionally:
+        chown  chasidustv:chasidustv *
+        chown  chasidustv:chasidustv .*
+    systemctl restart chasidustv

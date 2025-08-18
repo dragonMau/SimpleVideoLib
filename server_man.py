@@ -1,10 +1,11 @@
 import sys
 import database_man
 from database_man import Video, Playlist, Group
-from flask import Flask, jsonify, make_response, request, \
+from flask import Flask, Response, jsonify, make_response, request, \
     send_from_directory, abort, render_template, session
 import os
 from dotenv import load_dotenv
+import requests
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
@@ -22,6 +23,13 @@ def create_template():
     with open(HOME_DIR + 'templates/index.html', 'w') as out_file:
         out_file.write(content.replace(r'%csrf_token%', '{{ csrf_token() }}'))
 
+# @app.after_request
+# def add_csp(response):
+#     csp = (
+
+#     )
+#     response.headers["Content-Security-Policy"] = csp
+#     return response
 
 @app.route("/")
 def serve_index():
@@ -71,9 +79,24 @@ def get_config():
     return send_from_directory(HOME_DIR, "config.json")
 
 
+@app.route("/thumb/<archive_id>")
+def thumb_proxy(archive_id):
+    url = f"https://archive.org/download/{archive_id}/__ia_thumb.jpg"
+    r = requests.get(url, stream=True)
+    if r.status_code != 200:
+        return "Not found", 404
+    return Response(r.content, mimetype="image/jpeg")
+
 @app.after_request
 def set_csp(response):
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' archive.org; frame-src archive.org"
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self';"
+        "style-src 'self' 'unsafe-inline';"
+        "frame-src 'self' archive.org *archive.org;"
+        "img-src 'self' archive.org *archive.org;"
+        "connect-src 'self' archive.org *archive.org;"
+        "script-src 'self' 'unsafe-inline' archive.org *archive.org;"
+    )
     return response
 # Example POST route to test CSRF (you can remove this if not needed)
 

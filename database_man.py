@@ -9,6 +9,10 @@ import internetarchive as ia
 
 load_dotenv()
 
+trusted_uploaders = [
+    "m.seligey321@gmail.com"
+]
+
 class Video(BaseModel):
     id_: int = 0
     title: str = "VideoTitle"
@@ -195,7 +199,7 @@ def update_db():
             playlists = item.metadata.get("playlists")
             print(vid)
             print('playlists:', playlists)
-            if item.metadata.get("uploader") == "m.seligey321@gmail.com":
+            if item.metadata.get("uploader") in trusted_uploaders:
                 add_to_db(vid, playlists)
             else:
                 print("not mine, uploader:", item.metadata.get("uploader"))
