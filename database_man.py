@@ -18,6 +18,8 @@ class Video(BaseModel):
     title: str = "VideoTitle"
     description: str = "VideoDescription"
     archive_id: str = "archiveid"
+    playlists: str = ""
+    uploader: str = ""
     def __str__(self):
         return super().__repr__()
 
@@ -139,9 +141,9 @@ def add_video(vid: Video):
             (vid.archive_id,)
         )
         row = cursor.fetchone()
-        print('add video exists:', row)
+        print('    duplicates:', row)
         if row:
-            vid.id_ = row[0]
+            vid.id_ = row[0]    
             cursor.execute(
                 "UPDATE videos SET title = ?, description = ?, archive_id = ? WHERE id = ?",
                 (vid.title, vid.description, vid.archive_id, vid.id_)
@@ -155,56 +157,55 @@ def add_video(vid: Video):
     return vid.id_
 
 
-def add_to_db(vid: Video, playlists: str):
+def add_to_db(vid: Video):
     vidid = add_video(vid)
-    for pl in playlists.split(';'):
+    for pl in vid.playlists.split(';'):
         if not pl: continue
         update_playlist(pl, vidid)
-        
+
+def process_result(result):
+    id_ = result["identifier"]
+    # item = ia.get_item(id_)
+    # print("result:\n", result)
+    # print("item:\n", item)
+    item = ia.get_item(id_)
+    # print("item:\n", item.metadata)
+    print(id_, end=': ')
+    vid = Video(**item.metadata, archive_id=id_)
+    print(vid)
+    # input()
+    # print('    playlists:', playlists)
+    if vid.uploader in trusted_uploaders:
+        add_to_db(vid)
+        return 1
+    else:
+        print("    not mine, uploader:", vid.uploader)
+        return 0
+
 def update_db():
     query = (
         'Subject:"ChasidusTV" AND '
-        # 'Uploader:"m.seligey321@gmail.com" AND '
         'Mediatype:movies'
     )
     fields=[
-        'identifier',
-        'title',
-        'creator',
-        'date',
-        'mediatype',
-        'subject',
-        'description'
+        'identifier', #
+        # 'description', #
+        # 'playlists', #
+            # 'subject',  #
+        # 'title', #
+                        # 'creator',  # None
+                        # 'uploader', # None
     ]
-    params = {
-    'fl[]': fields,  # fields to fetch
-    'rows': 10,      # number of results per page
-    'page': 1        # starting page
-    }
     amount = 0
-    while True:
-        print(query)
-        search = ia.search_items(
-            query, 
-            params=params
-        )
-        print(search)
-        results = list(search)
-        if not results: break
-        params['page'] += 1
-        for s in results:
-            id_ = s["identifier"]
-            print(id_, end=': ')
-            item = ia.get_item(id_)
-            vid = Video(**(item.metadata | s), archive_id=id_)
-            playlists = item.metadata.get("playlists")
-            print(vid)
-            print('playlists:', playlists)
-            if item.metadata.get("uploader") in trusted_uploaders:
-                add_to_db(vid, playlists)
-                amount += 1
-            else:
-                print("not mine, uploader:", item.metadata.get("uploader"))
+    print(query)
+    search = ia.search_items(
+        query, 
+        fields=fields,
+        max_retries=20,
+    )
+    print(search)
+    for result in search:
+        amount += process_result(result)
     print(f"added {amount} videos")
 
 def print_db():
@@ -298,4 +299,5 @@ def do_all():
     # print_db()
 
 if __name__=="__main__":
+    # update_db()
     do_all()
