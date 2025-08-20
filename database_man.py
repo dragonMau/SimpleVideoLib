@@ -163,7 +163,7 @@ def add_to_db(vid: Video, playlists: str):
         
 def update_db():
     query = (
-        'Subject:"chasidusTV" AND '
+        'Subject:"ChasidusTV" AND '
         # 'Uploader:"m.seligey321@gmail.com" AND '
         'Mediatype:movies'
     )
@@ -180,7 +180,8 @@ def update_db():
     'fl[]': fields,  # fields to fetch
     'rows': 10,      # number of results per page
     'page': 1        # starting page
-}
+    }
+    amount = 0
     while True:
         print(query)
         search = ia.search_items(
@@ -201,8 +202,10 @@ def update_db():
             print('playlists:', playlists)
             if item.metadata.get("uploader") in trusted_uploaders:
                 add_to_db(vid, playlists)
+                amount += 1
             else:
                 print("not mine, uploader:", item.metadata.get("uploader"))
+    print(f"added {amount} videos")
 
 def print_db():
     with sqlite3.connect('archive.db') as conn:

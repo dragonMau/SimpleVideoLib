@@ -111,17 +111,18 @@ def test_post():
     print('data:', data)
     return {"status": "success", "received": data}
 
-def init_app():
+def init():
+    print("Preparing to start App")
     create_template()
-    database_man.do_all()
+    if os.environ.get('TEST', 'false').strip() == "true":
+        print("test mode")
+        database_man.init_db()
+    else:
+        print("release mode")
+        database_man.do_all()
+    print("Starting App")
 
-def init_test():
-    create_template()
-    database_man.init_db()
-
-init_app()
-# init_test()
-
+init()
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
