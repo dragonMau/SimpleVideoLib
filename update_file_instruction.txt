@@ -10,10 +10,17 @@ systemctl stop chasidustv
 on local:
     commit
     sync
-then on vds:
+then on vds: (option 1)
     cd /home/chasidustv/SimpleVideoLib
     git pull
     optionally:
         chown  chasidustv:chasidustv *
         chown  chasidustv:chasidustv .*
+    systemctl restart chasidustv
+
+then on vds: (option 2)
+    su chasidustv
+    cd ~/SimpleVideoLib
+    git pull
+    exit
     systemctl restart chasidustv
