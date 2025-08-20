@@ -119,8 +119,8 @@ def init_test():
     create_template()
     database_man.init_db()
 
-# init_app()
-init_test()
+init_app()
+# init_test()
 
 
 if __name__ == "__main__":
