@@ -69,9 +69,9 @@ def clear_db():
     with sqlite3.connect("archive.db") as conn:
         cursor = conn.cursor()
 
-        cursor.execute("DELETE FROM videos")
-        cursor.execute("DELETE FROM playlists")
-        cursor.execute("DELETE FROM groups")
+        cursor.execute("DROP TABLE IF EXISTS videos")
+        cursor.execute("DROP TABLE IF EXISTS playlists")
+        cursor.execute("DROP TABLE IF EXISTS groups")
 
     print("Database cleared.")
 
@@ -292,8 +292,8 @@ def get_groups(): # al
         } for row in rows]
 
 def do_all():
-    init_db()
     clear_db()
+    init_db()
     update_db()
     # print_db()
 
