@@ -1,17 +1,9 @@
-from flask import Flask, jsonify, make_response, request, send_from_directory, abort
-import os
 from pythings import BlobList
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import List
 import sqlite3
 import internetarchive as ia
-
-load_dotenv()
-
-trusted_uploaders = [
-    "m.seligey321@gmail.com"
-]
+from config import trusted_uploaders, DB_PATH
 
 class Video(BaseModel):
     id_: int = 0
@@ -39,7 +31,7 @@ class Group(BaseModel):
 
 def init_db():
     # Connect to SQLite and create tables
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute('''
@@ -68,7 +60,7 @@ def init_db():
         ''')
 
 def clear_db():
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute("DROP TABLE IF EXISTS videos")
@@ -85,7 +77,7 @@ def update_playlist(playlist: str, vidid) -> int | None:
     playlist_name = tree.pop() if tree else None
     group_name = tree.pop() if tree else None
 
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         # Insert or find playlist
@@ -134,7 +126,7 @@ def update_playlist(playlist: str, vidid) -> int | None:
     return playlist_id
 
 def add_video(vid: Video):
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id FROM videos WHERE archive_id = ?", 
@@ -165,16 +157,10 @@ def add_to_db(vid: Video):
 
 def process_result(result):
     id_ = result["identifier"]
-    # item = ia.get_item(id_)
-    # print("result:\n", result)
-    # print("item:\n", item)
     item = ia.get_item(id_)
-    # print("item:\n", item.metadata)
     print(id_, end=': ')
     vid = Video(**item.metadata, archive_id=id_)
     print(vid)
-    # input()
-    # print('    playlists:', playlists)
     if vid.uploader in trusted_uploaders:
         add_to_db(vid)
         return 1
@@ -188,13 +174,7 @@ def update_db():
         'Mediatype:movies'
     )
     fields=[
-        'identifier', #
-        # 'description', #
-        # 'playlists', #
-            # 'subject',  #
-        # 'title', #
-                        # 'creator',  # None
-                        # 'uploader', # None
+        'identifier'
     ]
     amount = 0
     print(query)
@@ -209,7 +189,7 @@ def update_db():
     print(f"added {amount} videos")
 
 def print_db():
-    with sqlite3.connect('archive.db') as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         # Get all table names
@@ -235,7 +215,7 @@ def print_db():
                 print(row)
 
 def get_videos(playlist_id):  # get videos of a playlist
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         # Get videos_ids blob
@@ -260,7 +240,7 @@ def get_videos(playlist_id):  # get videos of a playlist
         } for row in rows]
 
 def get_playlists(group_id):  # get playlists of a group
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
 
         cursor.execute("SELECT playlists_ids FROM groups WHERE id = ?", (group_id,))
@@ -283,7 +263,7 @@ def get_playlists(group_id):  # get playlists of a group
 
     
 def get_groups(): # al
-    with sqlite3.connect("archive.db") as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id, name FROM groups")
         rows = cursor.fetchall()

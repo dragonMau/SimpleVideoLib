@@ -282,7 +282,7 @@ async function selectVideoTree(video_path) {
 
 async function initializePage() {
     const initGroupsJob = initGroups();
-    const config_dataJob = fetchData("/config");
+    const config_dataJob = fetchData("/config.json");
 
     const header_text = document.getElementById("header_text");
     const footer_text = document.getElementById("footer_text");

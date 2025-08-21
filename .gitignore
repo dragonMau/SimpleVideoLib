@@ -1,7 +1,6 @@
 .env
 __pycache__
 SimpleVideoLib.code-workspace
-test ad
-templates
-archive.db
-journal.txt
+temp/*
+ssl/*
+nginx/root_dir.conf
