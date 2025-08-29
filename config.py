@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 HOME_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,19 +18,24 @@ CACHED_FILES = [
 ]
 DB_PATH = os.path.join(HOME_DIR, "temp/archive.db")
 
+
+FLASK_ENV = os.environ.get("FLASK_ENV")
+GOOGLE_CLIENT_ID = os.environ.get("GoogleClientID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GoogleClientSecret")
+TEST = os.environ.get('TEST', 'false').strip()
+
 trusted_uploaders = [
     "m.seligey321@gmail.com"
+]
+trusted_subs = [
+    "117092394708269010937" # m.seligey321@gmail.com
 ]
 
 def set_csp(response):
     response.headers['Content-Security-Policy'] = (
-        "default-src 'self';"
-        "style-src 'self' 'unsafe-inline';"
-        "frame-src 'self' archive.org *.archive.org;"
-        "img-src 'self' archive.org *.archive.org;"
-        "connect-src 'self' archive.org *.archive.org;"
-        "script-src 'self' 'unsafe-inline' archive.org *.archive.org;"
+        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
     )
+
     return response
 
 

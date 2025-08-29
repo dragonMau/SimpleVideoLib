@@ -1,13 +1,17 @@
 # routes/api_routes.py
 from flask import Blueprint, abort, request
 import services.database as db
-import os
+from config import TEST, trusted_subs
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import json
+
 
 api = Blueprint("api", __name__)
 
 @api.record_once
 def init(state):
-    if os.environ.get('TEST', 'false').strip() == "true":
+    if TEST == "true":
         print("test db mode (not updating)")
         db.init_db()
     else:
@@ -52,3 +56,15 @@ def test_post():
     data = request.get_json()
     print('data:', data)
     return {"status": "success", "received": data}
+
+@api.route("/login", methods=['POST'])
+def login():
+    data: dict[str] = json.loads(request.get_json())
+    print("data:", data)
+    credential = data.get("credential")
+    idinfo: dict[str] = id_token.verify_oauth2_token(credential, requests.Request())
+    return {
+        "status": "success",
+        "trusted": idinfo.get('sub') in trusted_subs,
+        "picture": idinfo.get('picture')
+    }

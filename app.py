@@ -3,18 +3,14 @@ from routes.api_routes import api
 from routes.static_routes import static
 from routes.proxy_routes import proxy
 from extensions import csrf
-from config import set_csp
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from config import set_csp, FLASK_ENV
 
 def create_app():
     print("Preparing to start App")
 
     app = Flask(__name__)
     
-    if os.environ.get("FLASK_ENV") == "production":
+    if FLASK_ENV == "production":
         app.config.from_object("config.ProdConfig")
     else:
         app.config.from_object("config.DevConfig")

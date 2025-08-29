@@ -46,6 +46,20 @@ body {
     justify-content: center;
 }
 
+#google_button {
+    position: absolute;
+    height: 32px;
+    right: 5%;
+}
+
+.google_logout {
+    position: relative;
+    /* transform: translate(-50%, -50%); */
+    border-radius: 50%;
+    width: 2rem;
+    cursor: pointer;
+}
+
 footer {
     margin-top: 40px;
     background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);

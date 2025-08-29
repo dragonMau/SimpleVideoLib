@@ -7,16 +7,19 @@ async function fetchData(url) {
     return data;
 }
 async function postData(url, data) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrf_token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
+                'X-CSRFToken': csrf_token,
             },
             body: JSON.stringify(data)
         }
     )
+    if (!response.ok) {
+        throw new Error(`Failed to post content to ${url}`);
+    }
     const answer = await response.json();
     return answer; 
 }
@@ -285,21 +288,54 @@ async function selectVideoTree(video_path) {
     selectVideo(videoItem);
 }
 
+async function initializeGoogle() {    
+    const googleButton = document.getElementById("google_button");
+    const google_client_id = document.querySelector('meta[name="google-client-id"]').getAttribute('content');
+
+    function renderButton() {
+        google.accounts.id.renderButton(
+            googleButton,
+            {
+                size: "medium",
+                type: "icon",
+                theme: "filled_blue",
+                text: "signin"
+            }
+        );
+    }
+
+    async function handleLoginResponse(response) {
+        answer = await postData("/login", JSON.stringify(response));
+        console.log("trusted: ", answer.trusted);
+        googleButton.innerHTML = `<img class="google_logout" title="logout" src="${answer.picture}">`
+        googleButton.addEventListener("click", () => {
+            renderButton();
+        });
+    }
+
+    google.accounts.id.initialize({
+        client_id: google_client_id,
+        callback: handleLoginResponse
+    });
+    renderButton();
+}
+
 async function initializePage() {
-    const initGroupsJob = initGroups();
-    const config_dataJob = fetchData("/config.json");
+    const init_groups_job = initGroups();
+    const config_data_job = fetchData("/config.json");
 
     const header_text = document.getElementById("header_text");
     const footer_text = document.getElementById("footer_text");
-    const config_data = await config_dataJob;
+    const config_data = await config_data_job;
     header_text.textContent = config_data.header_text || "Yehi Adonenu";
     footer_text.textContent = config_data.footer_text || "We Want Mochiah Now";
     const first_video = config_data.first_video;
-    await initGroupsJob;
+    await init_groups_job;
     await selectVideoTree(first_video);
 }
 // Initialize when page loads
 window.addEventListener('DOMContentLoaded', initializePage);
+window.addEventListener('load', initializeGoogle)
 
 /*
 

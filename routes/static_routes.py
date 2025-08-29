@@ -1,12 +1,12 @@
 from flask import Blueprint, render_template, send_from_directory, abort, make_response
-from config import STATIC_DIR, STATIC_FILES, CACHED_FILES
+from config import STATIC_DIR, STATIC_FILES, CACHED_FILES, GOOGLE_CLIENT_ID
 from datetime import datetime, timedelta
 
 static = Blueprint("static", __name__)
 
 @static.route("/")
 def serve_index():
-    return render_template("index.html")
+    return render_template("index.html", google_cid=GOOGLE_CLIENT_ID)
 
 @static.route("/<file_name>")
 def serve_allowed_static(file_name):
