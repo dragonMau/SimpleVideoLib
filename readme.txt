@@ -38,8 +38,7 @@ services setup:
     [Service]
     User=chasidustv
     WorkingDirectory=/home/chasidustv/SimpleVideoLib
-    ExecStart=/home/chasidustv/python-portable/bin/python3.12 -u -m gunicorn -b 127.0.0.1:9000 server_man:app
-    # ExecStart=/home/chasidustv/python-portable/bin/python3.12 -u -m gunicorn -b 127.0.0.1:9000 "app:create_app()"
+    ExecStart=/home/chasidustv/python-portable/bin/python3.12 -u -m gunicorn -b 127.0.0.1:9000 "app:create_app()"
     Restart=always
     RestartSec=5
 
