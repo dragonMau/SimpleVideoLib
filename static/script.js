@@ -92,6 +92,11 @@ function createPlaylistElement(playlistsList, playlistTemplate, playlist_id, pla
             e.classList.remove("selected");
         });
         playlistItem.classList.add("selected");
+        
+        videoHead.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
     });
 
     playlistsList.appendChild(playlistItem);
@@ -120,14 +125,16 @@ function createVideoElement(videoList, videoTemplate, video_id, video_title, vid
 
 function selectVideo(videoItem) {
     const videoPathText = document.getElementById("video_path_text");
-    // const video_group_name = document.getElementById(`group_${videoItem.dataset.groupId}`).querySelector(".group-item-name").textContent;
-    // const video_playlist_name = document.getElementById(`playlist_${videoItem.dataset.playlistId}`).querySelector(".playlist-item-name").textContent;
 
     videoPathText.textContent = document.getElementById("videos_title").textContent;
     videoPathText.href = "#";
 
-    const playerIframe = document.getElementById("player_iframe");
-    playerIframe.src = `https://archive.org/embed/${videoItem.dataset.archive_id}`;
+    const playerIframe = document.getElementById("player_iframe");    
+    playerIframe.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+    });
+    playerIframe.src = `https://archive.org/embed/${videoItem.dataset.archive_id}&autoplay=1`;
     const videoName = document.getElementById("video_name");
     videoName.textContent = videoItem.querySelector('.video-item-title').textContent;
     const videoDescription = document.getElementById("video_description");
@@ -278,8 +285,6 @@ async function selectVideoTree(video_path) {
     selectVideo(videoItem);
 }
 
-
-
 async function initializePage() {
     const initGroupsJob = initGroups();
     const config_dataJob = fetchData("/config.json");
@@ -308,5 +313,4 @@ Add alt text templates for video thumbnails
 2. Security Considerations
 
 Ensure proper sanitization of data from the API, especially for innerHTML assignments
-Consider CSP headers if this will be deployed
 */

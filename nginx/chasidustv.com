@@ -27,7 +27,7 @@ server {
     
     resolver 1.1.1.1 8.8.8.8 valid=300s;
     resolver_timeout 5s;
-    
+
     location ~ ^/thumb/(.+)$ {
         proxy_pass https://archive.org/download/$1/__ia_thumb.jpg;
         proxy_set_header Host archive.org;

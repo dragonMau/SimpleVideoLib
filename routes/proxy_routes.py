@@ -7,6 +7,7 @@ proxy = Blueprint("proxy", __name__)
 # Not used with nginx, nginx proxies it /thumb/*
 @proxy.route("/thumb/<archive_id>")
 def thumb_proxy(archive_id):
+    print("Flask Thumb Fallback")
     url = f"https://archive.org/download/{archive_id}/__ia_thumb.jpg"
     r = requests.get(url, stream=True)
     if r.status_code != 200:

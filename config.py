@@ -8,6 +8,10 @@ STATIC_FILES = [
     "styles.css",
     "config.json"
 ]
+CACHED_FILES = [
+    #"styles.css",
+    #"script.js"
+]
 DB_PATH = os.path.join(HOME_DIR, "temp/archive.db")
 
 trusted_uploaders = [

@@ -5,12 +5,14 @@ import os
 
 api = Blueprint("api", __name__)
 
-if os.environ.get('TEST', 'false').strip() == "true":
-    print("test db mode (not updating)")
-    db.init_db()
-else:
-    print("release db mode (updating)")
-    db.do_all()
+@api.record_once
+def init(state):
+    if os.environ.get('TEST', 'false').strip() == "true":
+        print("test db mode (not updating)")
+        db.init_db()
+    else:
+        print("release db mode (updating)")
+        db.do_all()
 
 
 @api.route("/groups", methods=["GET"])
