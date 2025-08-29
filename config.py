@@ -24,10 +24,10 @@ GOOGLE_CLIENT_ID = os.environ.get("GoogleClientID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GoogleClientSecret")
 TEST = os.environ.get('TEST', 'false').strip()
 
-trusted_uploaders = [
+trusted_uploaders = [ # for archive.org filtering
     "m.seligey321@gmail.com"
 ]
-trusted_subs = [
+trusted_subs = [ # for accessing site (google sub) 
     "117092394708269010937" # m.seligey321@gmail.com
 ]
 
@@ -50,4 +50,6 @@ class DevConfig(BaseConfig):
 class ProdConfig(BaseConfig):
     DEBUG = False
     TESTING = False
-    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE=True     # only send cookie over HTTPS
+    SESSION_COOKIE_HTTPONLY=True   # not accessible via JS
+    SESSION_COOKIE_SAMESITE="Lax"  # CSRF protection

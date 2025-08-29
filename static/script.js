@@ -306,7 +306,7 @@ async function initializeGoogle() {
 
     async function handleLoginResponse(response) {
         answer = await postData("/login", JSON.stringify(response));
-        console.log("trusted: ", answer.trusted);
+        // console.log("trusted: ", answer.trusted);
         googleButton.innerHTML = `<img class="google_logout" title="logout" src="${answer.picture}">`
         googleButton.addEventListener("click", () => {
             renderButton();
