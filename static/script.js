@@ -6,7 +6,7 @@ async function fetchData(url) {
     const data = await response.json();
     return data;
 }
-async function postData(url, data) {
+async function postData(url, data={}) {
     const csrf_token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const response = await fetch(url, {
             method: 'POST',
@@ -74,8 +74,8 @@ function createGroupElement(groupsList, groupTemplate, group_id, group_name) {
     groupsList.appendChild(groupItem);
 }
 
-// createPlaylistElement(playlistsList, playlistTemplate, playlist.id_, playlist.name)
-function createPlaylistElement(playlistsList, playlistTemplate, playlist_id, playlist_name) {
+// createPlaylistElement(playlistsList, playlistTemplate, groupid, playlist.id_, playlist.name)
+function createPlaylistElement(playlistsList, playlistTemplate, group_id, playlist_id, playlist_name) {
     const playlistItem = playlistTemplate.cloneNode(true);
     playlistItem.id = `playlist_${playlist_id}`;
     const playlistName = playlistItem.querySelector(".playlist-item-name");
@@ -87,7 +87,7 @@ function createPlaylistElement(playlistsList, playlistTemplate, playlist_id, pla
         const group_name = playlistItem.closest(".group-item").querySelector(".group-item-name").textContent;
         
         playlistName.innerHTML = `${playlist_name} <span class="spinner"></spinner>`;
-        await initVideoElemetns(playlist_id);
+        await initVideoElemetns(group_id, playlist_id);
         videoHead.textContent = `${group_name} → ${playlist_name}`;
         playlistName.innerHTML = `${playlist_name}`;
 
@@ -105,8 +105,8 @@ function createPlaylistElement(playlistsList, playlistTemplate, playlist_id, pla
     playlistsList.appendChild(playlistItem);
 }
 
-//createVideoElement(videoList, videoTemplate, video.id_, video.title, video.description, video.archive_id )
-function createVideoElement(videoList, videoTemplate, video_id, video_title, video_description, archive_id) {
+//createVideoElement(videoList, videoTemplate, groupid, playlistid, video.id_, video.title, video.description, video.archive_id )
+function createVideoElement(videoList, videoTemplate, group_id, playlist_id, video_id, video_title, video_description, archive_id) {
     const videoItem = videoTemplate.cloneNode(true);
     videoItem.id = `video_${video_id}`;
     const videoTitle = videoItem.querySelector(".video-item-title");
@@ -120,6 +120,9 @@ function createVideoElement(videoList, videoTemplate, video_id, video_title, vid
     videoItem.dataset.archive_id = archive_id;
 
     videoItem.addEventListener("click", () => {
+        sessionStorage.setItem("opened_video", JSON.stringify([
+            Date.now()+3600000, group_id, playlist_id, video_id
+        ]))
         selectVideo(videoItem);
     });
 
@@ -144,7 +147,7 @@ function selectVideo(videoItem) {
     videoDescription.textContent = videoItem.querySelector('.video-item-description').textContent;
 }
 
-async function initVideoElemetns(playlist_id) {
+async function initVideoElemetns(group_id, playlist_id) {
     const video_data = await fetchData(`/playlists/${playlist_id}/videos`);
     /*{
         "type": "videos list",
@@ -161,7 +164,7 @@ async function initVideoElemetns(playlist_id) {
     const videoTemplate = document.getElementById("video_item_template").content.firstElementChild;
     videoList.innerHTML = '';
     video_data.items.forEach(video => {
-        createVideoElement(videoList, videoTemplate, 
+        createVideoElement(videoList, videoTemplate, group_id, playlist_id,
             video.id_, video.title, video.description, video.archive_id
         )
     });
@@ -181,12 +184,12 @@ async function initPlaylistElements(playlistsList, group_id) {
     const playlistTemplate = document.getElementById("playlist_item_template").content.firstElementChild;
     playlistsList.innerHTML = '';
     playlist_data.items.forEach(playlist => {
-        createPlaylistElement(playlistsList, playlistTemplate, 
+        createPlaylistElement(playlistsList, playlistTemplate, group_id,
             playlist.id_, playlist.name);
     });
 }
 async function initGroups() {
-    const groups_data = await fetchData('/groups');
+    const groups_data = await fetchData('/groups'); 
     /*{
         "type": "groups list",
         "items": [
@@ -211,8 +214,16 @@ function getWeekSeededRandomItem(array, offset = 0) {
     return array[index];
 }
 
-async function selectVideoTree(video_path) {
+async function selectVideoTree() {
     let group_id, playlist_id, video_id;
+    const opened_video = JSON.parse(sessionStorage.getItem("opened_video") || "[0, 0, 0, 0]");
+    let video_path;
+    if (opened_video[0] < Date.now()) { // expired
+        video_path = [0, 0, 0];
+    }
+    else {
+        video_path = opened_video.slice(1);
+    }
 
     if (!Array.isArray(video_path) || video_path.length !== 3) {
         console.warn("No valid video_path provided. Using fallback random values.");
@@ -224,14 +235,17 @@ async function selectVideoTree(video_path) {
     // 1. Resolve group
     let groupItem;
     if (group_id) {
-        groupItem = document.getElementById(group_id.startsWith("group_") ? group_id : `group_${group_id}`);
+        groupItem = document.getElementById(`group_${group_id}`);
     }
     if (!groupItem) {
         const groups = Array.from(document.querySelectorAll(".group-item"));
         groupItem = getWeekSeededRandomItem(groups, 0);
-        group_id = groupItem?.id.split("_")[1];
+        group_id = +groupItem?.id.split("_")[1];
     }
-    if (!groupItem) return;
+    if (!groupItem) {
+        console.error("Group Item not found!!");
+        return;
+    }
 
     const groupCheckbox = groupItem.querySelector(".group-dropdown");
     const playlistsWrap = groupItem.querySelector(".playlists");
@@ -253,14 +267,17 @@ async function selectVideoTree(video_path) {
     // 2. Resolve playlist
     let playlistItem;
     if (playlist_id) {
-        playlistItem = document.getElementById(playlist_id.startsWith("playlist_") ? playlist_id : `playlist_${playlist_id}`);
+        playlistItem = document.getElementById(`playlist_${playlist_id}`);
     }
     if (!playlistItem) {
         const playlists = Array.from(playlistsList.querySelectorAll(".playlist-item"));
         playlistItem = getWeekSeededRandomItem(playlists, 1);
         playlist_id = playlistItem?.id.split("_")[1];
     }
-    if (!playlistItem) return;
+    if (!playlistItem) {
+        console.error("Playlist Item not Found!!!");
+        return;
+    }
 
     // Highlight and load videos
     const playlistName = playlistItem.querySelector(".playlist-item-name").textContent;
@@ -271,28 +288,34 @@ async function selectVideoTree(video_path) {
     document.querySelectorAll(".selected").forEach(el => el.classList.remove("selected"));
     playlistItem.classList.add("selected");
 
-    await initVideoElemetns(playlist_id);
+    await initVideoElemetns(group_id, playlist_id);
 
     // 3. Resolve video
     let videoItem;
     if (video_id) {
-        videoItem = document.getElementById(video_id.startsWith("video_") ? video_id : `video_${video_id}`);
+        videoItem = document.getElementById(`video_${video_id}`);
     }
     if (!videoItem) {
         const videos = Array.from(document.querySelectorAll(".video-item"));
         videoItem = getWeekSeededRandomItem(videos, 2);
     }
-    if (!videoItem) return;
+    if (!videoItem) {
+        console.error("Video Item not Found!!!");
+        return;
+    }
 
     // Select video
+    sessionStorage.setItem("opened_video", JSON.stringify([Date.now()+3600000, group_id, playlist_id, video_id]));
     selectVideo(videoItem);
 }
 
-async function initializeGoogle() {    
+async function initializeGoogle() {
     const googleButton = document.getElementById("google_button");
     const google_client_id = document.querySelector('meta[name="google-client-id"]').getAttribute('content');
 
-    function renderButton() {
+    // --- Render Google login button ---
+    function renderLoginButton() {
+        googleButton.innerHTML = "";
         google.accounts.id.renderButton(
             googleButton,
             {
@@ -304,21 +327,42 @@ async function initializeGoogle() {
         );
     }
 
-    async function handleLoginResponse(response) {
-        answer = await postData("/login", JSON.stringify(response));
-        // console.log("trusted: ", answer.trusted);
-        googleButton.innerHTML = `<img class="google_logout" title="logout" src="${answer.picture}">`
-        googleButton.addEventListener("click", () => {
-            renderButton();
-        });
+    // --- Render user picture with logout ---
+    function renderUserPicture(pictureUrl) {
+        googleButton.innerHTML = `<img class="google_logout" title="logout" src="${pictureUrl}">`;
+        googleButton.onclick = logout;
     }
 
+    // --- Logout function ---
+    async function logout() {
+        try { await postData("/logout"); } catch {}
+        renderLoginButton();
+    }
+
+    // --- Handle Google login response ---
+    async function handleLoginResponse(response) {
+        try {await postData("/login", response);} catch {}
+        await renderMode();
+    }
+
+    async function renderMode() {
+        try {
+            const pictureData = await fetchData("/get_picture");
+            renderUserPicture(pictureData.picture);
+        } catch (err) {
+            renderLoginButton();
+        }
+    }
+
+    // --- Initialize Google API ---
     google.accounts.id.initialize({
         client_id: google_client_id,
         callback: handleLoginResponse
     });
-    renderButton();
+
+    await renderMode();
 }
+
 
 async function initializePage() {
     const init_groups_job = initGroups();
@@ -329,13 +373,21 @@ async function initializePage() {
     const config_data = await config_data_job;
     header_text.textContent = config_data.header_text || "Yehi Adonenu";
     footer_text.textContent = config_data.footer_text || "We Want Mochiah Now";
-    const first_video = config_data.first_video;
+    const opened_video = JSON.parse(sessionStorage.getItem("opened_video") || "[0, 0, 0, 0]"); // [when, group, playlist, video]
+    if (opened_video[0] < Date.now()) { // expired
+        sessionStorage.setItem("opened_video", JSON.stringify(
+            [Date.now()+3600000, ...config_data.first_video]
+        ));
+    }
     await init_groups_job;
-    await selectVideoTree(first_video);
+    await selectVideoTree();
 }
 // Initialize when page loads
 window.addEventListener('DOMContentLoaded', initializePage);
-window.addEventListener('load', initializeGoogle)
+window.addEventListener('load', () => {
+    initializeGoogle();
+});
+
 
 /*
 

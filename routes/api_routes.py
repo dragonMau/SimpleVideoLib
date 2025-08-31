@@ -4,8 +4,7 @@ import services.database as db
 from config import TEST, trusted_subs
 from google.oauth2 import id_token
 from google.auth.transport import requests
-import json
-from time import time
+from datetime import datetime
 
 
 api = Blueprint("api", __name__)
@@ -58,32 +57,26 @@ def test_post():
     print('data:', data)
     return {"status": "success", "received": data}
 
+
 @api.route("/login", methods=['POST'])
 def login():
-    data: dict[str] = json.loads(request.get_json())
+    data = request.get_json()
     credential = data.get("credential")
-    idinfo: dict[str] = id_token.verify_oauth2_token(credential, requests.Request())
+    idinfo: dict = id_token.verify_oauth2_token(credential, requests.Request())
 
     session['user'] = {
         'sub': idinfo.get("sub"),
+        'picture': idinfo.get('picture'),
         'exp': int(idinfo.get("exp"))
     }
-    return {
-        "status": "success",
-        "trusted": idinfo.get('sub') in trusted_subs,
-        "picture": idinfo.get('picture')
-    }
 
-def is_trusted():
-    user: dict[str] = session.get("user")
-    if not user: return False
-
-    # Check expiration
-    if user.get("exp", 0) < time():
-        session.pop("user")  # remove expired session
-        return False
-    
-    if user.get("sub") in trusted_subs:
-        return True
+    if idinfo.get("sub") in trusted_subs:
+        return {"status": "success"}
     else:
-        return False
+        # Log untrusted login attempt
+        log_line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | email: {idinfo.get('email')} | sub: {idinfo.get('sub')}\n"
+        with open("untrusted_logins.txt", "a", encoding="utf-8") as f:
+            f.write(log_line)
+
+        return {"error": "User error"}, 401
+

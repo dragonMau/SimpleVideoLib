@@ -4,3 +4,4 @@ SimpleVideoLib.code-workspace
 temp/*
 ssl/*
 nginx/root_dir.conf
+untrusted_logins.txt

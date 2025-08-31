@@ -2,6 +2,7 @@ from flask import Flask
 from routes.api_routes import api
 from routes.static_routes import static
 from routes.proxy_routes import proxy
+from routes.priveleged_routes import priv_api
 from extensions import csrf
 from config import set_csp, FLASK_ENV
 
@@ -17,6 +18,7 @@ def create_app():
     
     csrf.init_app(app)
     app.register_blueprint(api)
+    app.register_blueprint(priv_api)
     app.register_blueprint(static)
     app.register_blueprint(proxy)
 

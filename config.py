@@ -32,10 +32,9 @@ trusted_subs = [ # for accessing site (google sub)
 ]
 
 def set_csp(response):
-    response.headers['Content-Security-Policy'] = (
-        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+    response.headers['Content-Security-Policy-Report-Only'] = (
+        "default-src 'self' archive.org *.archive.org google.com *.google.com;"
     )
-
     return response
 
 
