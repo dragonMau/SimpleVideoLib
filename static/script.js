@@ -309,63 +309,61 @@ async function selectVideoTree() {
     selectVideo(videoItem);
 }
 
-async function initializeGoogle() {
+// --- Render Google login button ---
+function renderGoogleButton() {
     const googleButton = document.getElementById("google_button");
+    googleButton.innerHTML = "";
+    google.accounts.id.renderButton(
+        googleButton,
+        {
+            size: "medium",
+            type: "icon",
+            theme: "filled_blue",
+            text: "signin"
+        }
+    );
+}
+
+// --- Render user picture with logout ---
+function renderUserPicture(pictureUrl) {
+    const googleButton = document.getElementById("google_button");
+    googleButton.innerHTML = `<img class="google_logout" title="logout" src="${pictureUrl}">`;
+    googleButton.onclick = logout;
+}
+
+// --- Logout function ---
+async function logout() {
+    try { await postData("/logout"); } catch {}
+    renderGoogleButton();
+}
+
+// --- Handle Google login response ---
+async function handleLoginResponse(response) {
+    try {await postData("/login", response);} catch {}
+    await renderMode();
+}
+
+async function renderMode() {
+    try {
+        const pictureData = await fetchData("/get_picture");
+        renderUserPicture(pictureData.picture);
+    } catch (err) {
+        renderGoogleButton();
+    }
+}
+async function initializeGoogle() {
     const google_client_id = document.querySelector('meta[name="google-client-id"]').getAttribute('content');
 
-    // --- Render Google login button ---
-    function renderLoginButton() {
-        googleButton.innerHTML = "";
-        google.accounts.id.renderButton(
-            googleButton,
-            {
-                size: "medium",
-                type: "icon",
-                theme: "filled_blue",
-                text: "signin"
-            }
-        );
-    }
-
-    // --- Render user picture with logout ---
-    function renderUserPicture(pictureUrl) {
-        googleButton.innerHTML = `<img class="google_logout" title="logout" src="${pictureUrl}">`;
-        googleButton.onclick = logout;
-    }
-
-    // --- Logout function ---
-    async function logout() {
-        try { await postData("/logout"); } catch {}
-        renderLoginButton();
-    }
-
-    // --- Handle Google login response ---
-    async function handleLoginResponse(response) {
-        try {await postData("/login", response);} catch {}
-        await renderMode();
-    }
-
-    async function renderMode() {
-        try {
-            const pictureData = await fetchData("/get_picture");
-            renderUserPicture(pictureData.picture);
-        } catch (err) {
-            renderLoginButton();
-        }
-    }
 
     // --- Initialize Google API ---
     google.accounts.id.initialize({
         client_id: google_client_id,
         callback: handleLoginResponse
     });
-
-    await renderMode();
 }
 
 
 async function initializePage() {
-    const init_groups_job = initGroups();
     const config_data_job = fetchData("/config.json");
 
     const header_text = document.getElementById("header_text");
@@ -379,13 +377,15 @@ async function initializePage() {
             [Date.now()+3600000, ...config_data.first_video]
         ));
     }
-    await init_groups_job;
-    await selectVideoTree();
 }
 // Initialize when page loads
-window.addEventListener('DOMContentLoaded', initializePage);
-window.addEventListener('load', () => {
-    initializeGoogle();
+window.addEventListener('DOMContentLoaded', async () => {
+    initializeGoogle().then(renderMode);
+    await initializePage();
+    await initGroups();
+    await selectVideoTree();
+});
+window.addEventListener('load', async () => {
 });
 
 

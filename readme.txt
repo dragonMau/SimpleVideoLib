@@ -21,6 +21,7 @@ update:
         git pull
         exit
         systemctl restart chasidustv
+        journalctl -u chasidustv -f
 
     then on vds: (option 2)
         cd /home/chasidustv/SimpleVideoLib
