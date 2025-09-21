@@ -25,7 +25,8 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GoogleClientSecret")
 TEST = os.environ.get('TEST', 'false').strip()
 
 trusted_uploaders = [ # for archive.org filtering
-    "m.seligey321@gmail.com"
+    "m.seligey321@gmail.com",
+    "chasidusv.com@gmail.com"
 ]
 trusted_subs = [ # for accessing site (google sub) 
     "117092394708269010937" # m.seligey321@gmail.com
