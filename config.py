@@ -12,6 +12,7 @@ STATIC_FILES = [
     "styles.css",
     "config.json"
 ]
+NPM_DIR = os.path.join(HOME_DIR, "npm")
 CACHED_FILES = [
     #"styles.css",
     #"script.js"

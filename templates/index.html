@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-client-id" content="{{ google_cid }}">
+
+    <link rel="stylesheet" href="/npm/choices.js@11.1.0/public/assets/styles/base.min.css">
+    <link rel="stylesheet" href="/npm/choices.js@11.1.0/public/assets/styles/choices.min.css">
+    <script src="/npm/choices.js@11.1.0/public/assets/scripts/choices.min.js"></script>
+
     <link rel="stylesheet" href="/styles.css">
     <link rel="icon" type="image/png" href="/icon.png">
     <title id="title_text">Chasidus TV</title>
@@ -43,9 +48,99 @@
             </div>
         </li>
     </template>
+    <dialog id="dialog_site" class="dialog-config">
+        <h4 class="dialog-config-head">Site config:</h4>
+        <form method="POST" action="/configure" class="dialog-config-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p>set video as defaul</p>
+            <p>set top title</p>
+            <p>set bottom title</p>
+            <div class="dialog-config-end">
+                <button formmethod="dialog">Cancel</button>
+                <button class="save-button">Save</button>
+            </div>
+        </form>
+    </dialog>
+    <dialog id="dialog_video" class="dialog-config">
+        <h4 class="dialog-config-head">Video config:</h4>
+        <form method="POST" action="/configure" class="dialog-config-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p>id: video_id</p>
+            <iframe>video preview</iframe>
+            <p>change video name</p>
+            <p>change video description</p> 
+            <p>change video playlists</p>
+            <div class="dialog-config-end">
+                <button formmethod="dialog">Cancel</button>
+                <button class="save-button">Save</button>
+            </div> 
+        </form>
+    </dialog>
+    <dialog id="dialog_playlist" class="dialog-config">
+        <h4 class="dialog-config-head">Playlist config:</h4>
+        <form method="POST" action="/configure" class="dialog-config-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <a>Playlist name</a>
+            <p>change playlist name</p>
+            <p>change playlist groups</p>
+            <div class="dialog-config-end">
+                <button formmethod="dialog">Cancel</button>
+                <button class="save-button">Save</button>
+            </div> 
+        </form>
+    </dialog>
+    <dialog id="dialog_group" class="dialog-config">
+        <h4 class="dialog-config-head">Group config:</h4>
+        <form method="POST" action="/configure" class="dialog-config-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Group name</label>
+            <input type="text">Change group name</input>
+            <div class="dialog-config-end">
+                <button formmethod="dialog">Cancel</button>
+                <button class="save-button">Save</button>
+            </div> 
+        </form>
+    </dialog>
+    <dialog id="dialog_upload" class="dialog-config">
+        <h4 class="dialog-config-head">Upload video:</h4>
+        <form method="POST" action="/configure" enctype="multipart/form-data" class="dialog-config-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>video upload</label>
+            <input type="file" name="file"><br>
+            <label>set video name</label>
+            <input type="text" name="name"><br>
+            <label>set video description</label>
+            <input type="text" name="description"><br>
+            <label>set video playlists</label>
+            <select id="dialog_upload_playlists" name="playlists" multiple required>
+                <option value="0">Adar</option>
+                <option value="1">Kislev</option>
+                <option value="2">Shevat</option>
+                <option value="-1">New Playlist</option>
+            </select>
+            <label class="new_name_label hidden">new playlist name</label>
+            <input class="new_name_input hidden" type="text" name="new_name"><br>
+            
+            <div class="dialog-config-end">
+                <button formmethod="dialog" formnovalidate>Cancel</button>
+                <button type="submit" class="save-button">Save</button>
+            </div> 
+        </form>
+    </dialog>
+
     <header class="banner">
         <h1 id="header_text">Yehi Adonenu</h1>
         <div id="google_button">G</div>
+        <dialog closedby="any" id="menu_box" class="menu-box">
+            <form class="menu-list">
+                <button formmethod="dialog" class="menu-item" id="menu_logout">Logout</button>
+                <button formmethod="dialog" class="menu-item" id="menu_upload">Upload</button>
+                <button formmethod="dialog" class="menu-item" id="menu_group">Group</button>
+                <button formmethod="dialog" class="menu-item" id="menu_playlist">Playlist</button>
+                <button formmethod="dialog" class="menu-item" id="menu_video">Video</button>
+                <button formmethod="dialog" class="menu-item" id="menu_site">Site</button>
+            </form>
+        </dialog>
     </header>
     <main>
         <div class="groups-video">

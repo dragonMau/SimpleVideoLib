@@ -6,22 +6,22 @@ async function fetchData(url) {
     const data = await response.json();
     return data;
 }
-async function postData(url, data={}) {
+async function postData(url, data = {}) {
     const csrf_token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrf_token,
-            },
-            body: JSON.stringify(data)
-        }
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf_token,
+        },
+        body: JSON.stringify(data)
+    }
     )
     if (!response.ok) {
         throw new Error(`Failed to post content to ${url}`);
     }
     const answer = await response.json();
-    return answer; 
+    return answer;
 }
 
 // Function to create group elements
@@ -49,12 +49,12 @@ function createGroupElement(groupsList, groupTemplate, group_id, group_name) {
                 .content.firstElementChild
                 .cloneNode(true);
             playlistsList.appendChild(loadingIndicator);
-            playlistsWrap.style.height = playlistsList.scrollHeight+1 + "px";
-            
+            playlistsWrap.style.height = playlistsList.scrollHeight + 1 + "px";
+
             await initPlaylistElements(playlistsList, group_id);
-            
+
             loadingIndicator.remove();
-            playlistsWrap.style.height = playlistsList.scrollHeight+1 + "px";
+            playlistsWrap.style.height = playlistsList.scrollHeight + 1 + "px";
 
         } else {
             playlistsWrap.style.height = "0";
@@ -65,7 +65,7 @@ function createGroupElement(groupsList, groupTemplate, group_id, group_name) {
         groupCheckbox.checked = !groupCheckbox.checked;
         groupCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    
+
     playlistsWrap.addEventListener('transitionend', function handler(e) {
         if (e.propertyName === 'height' && !groupCheckbox.checked) {
             playlistsList.innerHTML = '';
@@ -85,7 +85,7 @@ function createPlaylistElement(playlistsList, playlistTemplate, group_id, playli
 
         const videoHead = document.querySelector("#videos_title");
         const group_name = playlistItem.closest(".group-item").querySelector(".group-item-name").textContent;
-        
+
         playlistName.innerHTML = `${playlist_name} <span class="spinner"></spinner>`;
         await initVideoElemetns(group_id, playlist_id);
         videoHead.textContent = `${group_name} → ${playlist_name}`;
@@ -95,7 +95,7 @@ function createPlaylistElement(playlistsList, playlistTemplate, group_id, playli
             e.classList.remove("selected");
         });
         playlistItem.classList.add("selected");
-        
+
         videoHead.scrollIntoView({
             behavior: "smooth",
             block: "start",
@@ -121,7 +121,7 @@ function createVideoElement(videoList, videoTemplate, group_id, playlist_id, vid
 
     videoItem.addEventListener("click", () => {
         sessionStorage.setItem("opened_video", JSON.stringify([
-            Date.now()+3600000, group_id, playlist_id, video_id
+            Date.now() + 3600000, group_id, playlist_id, video_id
         ]))
         selectVideo(videoItem);
     });
@@ -135,7 +135,7 @@ function selectVideo(videoItem) {
     videoPathText.textContent = document.getElementById("videos_title").textContent;
     videoPathText.href = "#";
 
-    const playerIframe = document.getElementById("player_iframe");    
+    const playerIframe = document.getElementById("player_iframe");
     playerIframe.scrollIntoView({
         behavior: "smooth",
         block: "center",
@@ -189,7 +189,7 @@ async function initPlaylistElements(playlistsList, group_id) {
     });
 }
 async function initGroups() {
-    const groups_data = await fetchData('/groups'); 
+    const groups_data = await fetchData('/groups');
     /*{
         "type": "groups list",
         "items": [
@@ -305,7 +305,7 @@ async function selectVideoTree() {
     }
 
     // Select video
-    sessionStorage.setItem("opened_video", JSON.stringify([Date.now()+3600000, group_id, playlist_id, video_id]));
+    sessionStorage.setItem("opened_video", JSON.stringify([Date.now() + 3600000, group_id, playlist_id, video_id]));
     selectVideo(videoItem);
 }
 
@@ -327,19 +327,26 @@ function renderGoogleButton() {
 // --- Render user picture with logout ---
 function renderUserPicture(pictureUrl) {
     const googleButton = document.getElementById("google_button");
-    googleButton.innerHTML = `<img class="google_logout" title="logout" src="${pictureUrl}">`;
-    googleButton.onclick = logout;
+    googleButton.innerHTML = `<img class="google_logout" title="logout" src="${pictureUrl}" onclick="showMenu()">`;
+    // googleButton.onclick = showMenu; 
 }
-
+function showMenu() {
+    const menu = document.querySelector("#menu_box");
+    menu.show();
+}
+function hideMenu() {
+    menu.close();
+}
 // --- Logout function ---
 async function logout() {
-    try { await postData("/logout"); } catch {}
+    try { await postData("/logout"); } catch { }
+    // hideMenu();
     renderGoogleButton();
 }
 
 // --- Handle Google login response ---
 async function handleLoginResponse(response) {
-    try {await postData("/login", response);} catch {}
+    try { await postData("/login", response); } catch { }
     await renderMode();
 }
 
@@ -374,7 +381,7 @@ async function initializePage() {
     const opened_video = JSON.parse(sessionStorage.getItem("opened_video") || "[0, 0, 0, 0]"); // [when, group, playlist, video]
     if (opened_video[0] < Date.now()) { // expired
         sessionStorage.setItem("opened_video", JSON.stringify(
-            [Date.now()+3600000, ...config_data.first_video]
+            [Date.now() + 3600000, ...config_data.first_video]
         ));
     }
 }
@@ -387,8 +394,56 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 window.addEventListener('load', async () => {
 });
+window.addEventListener('scroll', () => {
+    document.documentElement.style.setProperty('--scroll-y', `${window.scrollY}px`);
+});
 
 
+document.querySelector("#menu_logout").onclick = logout;
+
+const dialogUpload = document.querySelector("#dialog_upload");
+const dialogUploadPlaylists = document.querySelector("#dialog_upload_playlists");
+new Choices('#dialog_upload_playlists', {
+    duplicateItemsAllowed: false,
+    searchEnabled: true,
+    shouldSort: false,
+    placeholderValue: 'choose atleast one playlist'
+});
+dialogUpload.addEventListener("close", () => {
+    const scrollY =  document.body.style.top;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    window.scrollTo(0, parseInt(scrollY || '0') * -1);
+});
+const dialogUploadNewPlaylistLabel = dialogUpload.querySelector(".new_name_label");
+const dialogUploadNewPlaylistInput = dialogUpload.querySelector(".new_name_input");
+
+dialogUploadPlaylists.addEventListener("change", ()=>{
+    var special_selected = Array.from(dialogUploadPlaylists.selectedOptions).some(opt => opt.value === '-1');
+    if (special_selected){
+        dialogUploadNewPlaylistLabel.classList.remove("hidden");
+        dialogUploadNewPlaylistInput.classList.remove("hidden");
+    } else {
+        dialogUploadNewPlaylistInput.classList.add("hidden");
+        dialogUploadNewPlaylistLabel.classList.add("hidden");
+    }
+    dialogUploadNewPlaylistInput.required=special_selected;
+});
+document.querySelector("#menu_upload").onclick = () => {
+    const scrollY = document.documentElement.style.getPropertyValue('--scroll-y');
+    dialogUpload.showModal();
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}`;
+};
+
+const dialogSite = document.querySelector("#dialog_site");
+document.querySelector("#menu_site").onclick = () => dialogSite.showModal();
+const dialogVideo = document.querySelector("#dialog_video");
+document.querySelector("#menu_video").onclick = () => dialogVideo.showModal();
+const dialogPlaylist = document.querySelector("#dialog_playlist");
+document.querySelector("#menu_playlist").onclick = () => dialogPlaylist.showModal();
+const dialogGroup = document.querySelector("#dialog_group");
+document.querySelector("#menu_group").onclick = () => dialogGroup.showModal();
 /*
 
 

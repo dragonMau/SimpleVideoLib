@@ -1,5 +1,6 @@
 # routes/api_routes.py
-from flask import Blueprint, abort, request, session
+from io import BytesIO
+from flask import Blueprint, abort, redirect, request, session, url_for
 from config import TEST, trusted_subs
 from time import time
 
@@ -26,3 +27,16 @@ def get_picture():
     return {
         "picture": session["user"].get("picture", "")
     }, 200
+
+@priv_api.route("/configure", methods=["POST"])
+def configue():
+    print("test configure success")
+    data = request.form.to_dict(flat=False)
+    print("data:", data)
+    print("files:", request.files)
+    for file in request.files.values():
+        for byte in iter(lambda: file.stream.read(8192), b''):
+            pass
+    # for _ in range(2**26): pass # to test what happens on slow time
+    return redirect("/")
+    return {"status": "success", "recieved": data}

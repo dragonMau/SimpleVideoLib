@@ -1,3 +1,10 @@
 configure CSP
-add admin panel
-setup proper db update
+
+add admin panel - in progress
+    making sketch with upload method
+    add autofill of options
+    make dialogs from js script
+    make most admin things recieved from server on login
+    make admin things separate from user things
+
+setup proper db update - i will use local-only

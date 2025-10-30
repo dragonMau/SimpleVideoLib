@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, send_from_directory, abort, make_response
-from config import STATIC_DIR, STATIC_FILES, CACHED_FILES, GOOGLE_CLIENT_ID
+from config import STATIC_DIR, STATIC_FILES, CACHED_FILES, NPM_DIR, GOOGLE_CLIENT_ID
 from datetime import datetime, timedelta
 
 static = Blueprint("static", __name__)
@@ -19,3 +19,11 @@ def serve_allowed_static(file_name):
                                           .strftime("%a, %d %b %Y %H:%M:%S GMT")
         return response
     abort(404)
+
+@static.route("/npm/<path:file_path>")
+def server_local_npm(file_path):
+    response = make_response(send_from_directory(NPM_DIR, file_path))
+    response.headers["Cache-Control"] = "public, max-age=604800"  # 7 days
+    response.headers["Expires"] = (datetime.now() + timedelta(days=7))\
+                                    .strftime("%a, %d %b %Y %H:%M:%S GMT")
+    return response
