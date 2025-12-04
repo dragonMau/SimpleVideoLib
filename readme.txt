@@ -15,21 +15,13 @@ update:
         commit
         sync/push
 
-    then on vds: (option 1)
-        su chasidustv
+    then vds:
+        ssh chasidustv
         cd ~/SimpleVideoLib
         git pull
-        exit
         systemctl restart chasidustv
+        # password of chasidustv user
         journalctl -u chasidustv -f
-
-    then on vds: (option 2)
-        cd /home/chasidustv/SimpleVideoLib
-        git pull
-        optionally:
-            chown  chasidustv:chasidustv *
-            chown  chasidustv:chasidustv .*
-        systemctl restart chasidustv
 
 services setup:
     [Unit]
