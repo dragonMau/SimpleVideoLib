@@ -369,7 +369,24 @@ async function initializeGoogle() {
     });
 }
 
+function openUrlVideo() {
+    // Read query parameter "video"
+    const params = new URLSearchParams(window.location.search);
+    const videoParam = params.get("video");
 
+    // Only proceed if parameter exists
+    if (videoParam) {
+        // Convert "2.15.110" → [2, 15, 110]
+        const parts = videoParam.split(".").map(Number);
+
+        // Build final array: [timestamp + 1 hour, ...parts]
+        const result = [Date.now() + 3600000, ...parts];
+
+        // Save to sessionStorage
+        sessionStorage.setItem("opened_video", JSON.stringify(result));
+    }
+
+}
 async function initializePage() {
     const config_data_job = fetchData("/config.json");
 
@@ -378,6 +395,7 @@ async function initializePage() {
     const config_data = await config_data_job;
     header_text.textContent = config_data.header_text || "Yehi Adonenu";
     footer_text.textContent = config_data.footer_text || "We Want Mochiah Now";
+    openUrlVideo();
     const opened_video = JSON.parse(sessionStorage.getItem("opened_video") || "[0, 0, 0, 0]"); // [when, group, playlist, video]
     if (opened_video[0] < Date.now()) { // expired
         sessionStorage.setItem("opened_video", JSON.stringify(
