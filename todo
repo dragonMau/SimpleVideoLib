@@ -8,3 +8,79 @@ add admin panel - in progress
     make admin things separate from user things
 
 setup proper db update - i will use local-only
+ 
+1) Keep DB rebuild for now (OK for ~100 items)
+    - Rationale: For small collections, your current "rebuild on start" workflow is acceptable.
+    - Caution: avoid doing destructive clear on production servers without backups.
+
+2) Separate metadata update from startup (recommended but optional)
+    - If you keep rebuild-on-start, consider running the slow `update_db()` path only when explicitly requested
+      (manual command, systemd timer, or when a flag/env var is set), so page startup stays fast and predictable.
+
+3) Use archive.org only for streaming/storage, not for metadata resolution
+    - Store needed metadata (title, description, archive_id) locally in SQLite during your ingest/update step.
+    - When showing videos, embed the archive.org player by archive_id but don't depend on live archive.org metadata during page load.
+
+4) Fix API 404 and error checks
+    - Check for empty item lists (e.g., `if not group_data['items']`) instead of truthiness of dicts.
+
+5) Harden secrets & CSP gradually
+    - Ensure `SECRET_KEY` is set in env on servers (don't rely on fallback secret).
+    - Keep CSP in Report-Only while iterating, then switch to enforcing policy after testing.
+
+6) Keep current simple deployment approach (Flask + nginx), or optionally serve frontend as static build later
+    - If you later move to a frontend build (Vue/React), produce `/dist` and let nginx serve it; keep Flask as API.
+
+7) Minimal safety & ops tips
+    - Add a small backup/export command for the SQLite DB before any destructive operation.
+    - Add `requirements.txt` with pinned deps to make deployments reproducible.
+    - Add a simple health-check endpoint (e.g., `/health`) to help systemd/nginx health tests.
+
+8) If you'd like, next quick changes I can make for you now:
+    - Remove the destructive `do_all()` call from automatic init and replace with a non-destructive `init_db()`; or leave as-is (your choice).
+    - Add `requirements.txt` and a tiny `/health` endpoint.
+    - Scaffold a tiny Vue CDN example component for incremental migration (no build tooling required).
+
+--- Migration options (summary from review) ---
+A) Incremental Vue (fast, low-effort)
+    - Add Vue via CDN to `templates/index.html` and mount to an existing container (no build tool required).
+    - Convert one UI area at a time (e.g., Groups + Playlists) into a Vue component using `v-for` and reactive state.
+    - Benefits: minimal ops changes, easy to learn, low configuration, keep Flask as-is.
+
+B) Full SPA with Vite (recommended long-term)
+    - Create `frontend/` using Vite + Vue (or Vite + React). Implement components: App, Groups, Playlists, Videos, Player, AuthButton, AdminDialogs.
+    - Use a small store (Pinia for Vue / Context or Zustand for React) for selected video state.
+    - Build outputs to `frontend/dist` and serve via nginx (or Flask static route). Keep Flask as API-only.
+    - Benefits: modern dev tooling, fast HMR during development, better structure and long-term maintainability.
+
+C) React (if preferred)
+    - Similar to Vue for a full SPA but requires JSX and a slightly steeper learning curve if you're new.
+    - Choose React if you plan to use specific React ecosystem libraries or have future team preference.
+
+Quick migration steps (incremental CDN Vue -> full SPA):
+ 1. Add Vue CDN script to `index.html` and create a simple `Groups` component that fetches `/groups` and renders via `v-for`.
+ 2. Gradually replace DOM template cloning with Vue components; keep backend APIs unchanged.
+ 3. When ready, scaffold Vite project, move components, add Pinia/store, and update nginx to serve `dist`.
+
+Minimal folder layout for full SPA:
+  frontend/
+     package.json
+     src/
+        main.js
+        App.vue
+        components/
+          Groups.vue
+          Playlists.vue
+          Videos.vue
+          Player.vue
+        api/api.js      # wrapper for fetch + CSRF
+     dist/             # build output
+
+Notes on CSRF and auth:
+  - If you move to SPA, provide CSRF token via a `/meta` endpoint or embed a meta tag in the served `index.html` so fetch/post can include `X-CSRFToken` header.
+  - Keep Google client id available via meta or `/meta` for initializing Google Sign-in.
+
+If you'd like, I can now:
+ - Add a tiny Vue CDN demo replacing `initGroups` (no build tools). OR
+ - Scaffold a Vite+Vue project layout and add a starter `App.vue` and `api` wrapper.
+Choose one and I'll implement it.

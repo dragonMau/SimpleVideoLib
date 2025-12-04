@@ -18,6 +18,7 @@ CACHED_FILES = [
     #"script.js"
 ]
 DB_PATH = os.path.join(HOME_DIR, "temp/archive.db")
+DB_URI = False
 
 
 FLASK_ENV = os.environ.get("FLASK_ENV")
@@ -27,10 +28,11 @@ TEST = os.environ.get('TEST', 'false').strip()
 
 trusted_uploaders = [ # for archive.org filtering
     "m.seligey321@gmail.com",
-    "chasidusv.com@gmail.com"
+    "chasidustv.com@gmail.com"
 ]
 trusted_subs = [ # for accessing site (google sub) 
-    "117092394708269010937" # m.seligey321@gmail.com
+    "117092394708269010937", # m.seligey321@gmail.com
+    "105244470467228453598" # chasidustv.com@gmail.com
 ]
 
 def set_csp(response):

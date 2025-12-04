@@ -31,9 +31,11 @@ class BlobList:
             raise ValueError(f"Value {v} out of uint32 range")
         return v
     @classmethod
-    def from_bytes(cls, *args):
-        return cls(*args)
-    def get(self, i):
+    def from_bytes(cls, blob: bytes = b''):
+        """Initialize the BlobList from a bytes object."""
+        return cls(blob)
+    
+    def get(self, i) -> int:
         """[i]: Get the integer value at index i."""
         i = self._validate_i(i)
         o = self._offset(i)
@@ -64,7 +66,7 @@ class BlobList:
                 return i
         return -1
 
-    def rem(self, v=None, i=None):
+    def remove(self, v=None, i=None):
         """[v, i]: Remove the value v or the element at index i."""
         v = self._validate_v(v)
         i = self._validate_i(i)
@@ -73,6 +75,8 @@ class BlobList:
         if i is None or i == -1:
             raise IndexError(f"Index {i} out of range or value {v} not found")
         del self.blob[self._offset(i):self._offset(i+1)]
+    
+    rem = remove
 
     def to_bytes(self):
         """[]: Return the blob as bytes."""
@@ -81,6 +85,9 @@ class BlobList:
     def to_list(self):
         """[]: Return the blob as a list of integers."""
         return [self.get(i) for i in range(len(self.blob) // 4)]
+    
+    def copy(self):
+        return BlobList.from_bytes(self.to_bytes())
 
     def __repr__(self):
         """Return a string representation of the BlobList."""

@@ -1,6 +1,6 @@
 # routes/api_routes.py
 from flask import Blueprint, abort, request, session
-import services.database as db
+import services.not_database as db
 from config import TEST, trusted_subs
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -28,25 +28,28 @@ def get_groups():
 
 @api.route("/groups/<id_>/playlists", methods=["GET"])
 def get_playlists(id_):
+    playlists = db.get_playlists(id_)
+    if playlists is None:
+        abort(404, description=f"Group '{id_}' not found")
+        return
     group_data = {
         "type": "playlists list",
-        "items": db.get_playlists(id_)
+        "items":playlists
     }
-    if group_data:
-        return group_data
-    else:
-        abort(404, description=f"Group '{id_}' not found")
+    return group_data
+    
 
 @api.route("/playlists/<id_>/videos")
 def get_videos(id_):
+    videos = db.get_videos(id_)
+    if videos is None:
+        abort(404, description=f"Playlist '{id_}' not found")
+        return
     playlist_data = {
         "type": "videos list",
-        "items": db.get_videos(id_)
+        "items": videos
     }
-    if playlist_data:
-        return playlist_data
-    else:
-        abort(404, description=f"Playlist '{id_}' not found")
+    return playlist_data
 
 
 # Example POST route to test CSRF (you can remove this if not needed)
