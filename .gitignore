@@ -5,3 +5,5 @@ temp/*
 ssl/*
 nginx/root_dir.conf
 untrusted_logins.txt
+uv.lock
+pyproject.toml
