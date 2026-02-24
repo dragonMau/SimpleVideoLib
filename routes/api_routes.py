@@ -11,12 +11,7 @@ api = Blueprint("api", __name__)
 
 @api.record_once
 def init(state):
-    if TEST == "true":
-        print("test db mode (not updating)")
-        db.init_db()
-    else:
-        print("release db mode (updating)")
-        db.do_all()
+    db.init_db()
 
 
 @api.route("/groups", methods=["GET"])

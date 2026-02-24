@@ -8,8 +8,12 @@ HOME_DIR = os.path.abspath(os.path.dirname(__file__))
 
 STATIC_DIR = os.path.join(HOME_DIR, "static")
 STATIC_FILES = [
+    "script_client.js",
+    "script_admin.js",
     "script.js",
     "styles.css",
+    "styles_client.css",
+    "styles_admin.css",
     "config.json"
 ]
 NPM_DIR = os.path.join(HOME_DIR, "npm")
@@ -17,7 +21,7 @@ CACHED_FILES = [
     #"styles.css",
     #"script.js"
 ]
-DB_PATH = os.path.join(HOME_DIR, "temp/archive.db")
+DB_PATH = os.path.join(HOME_DIR, "db/archive.db")
 
 
 FLASK_ENV = os.environ.get("FLASK_ENV")

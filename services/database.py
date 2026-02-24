@@ -1,283 +1,328 @@
-from pythings import BlobList
-from pydantic import BaseModel
-from typing import List
+"""
+Video library database - Pure data layer with no external dependencies.
+Supports hierarchical organization: Groups → Playlists → Videos
+"""
+
 import sqlite3
-import internetarchive as ia
-from config import trusted_uploaders, DB_PATH
+from typing import List, Dict, Optional
+from contextlib import contextmanager
+from config import DB_PATH
 
-class Video(BaseModel):
-    id_: int = 0
-    title: str = "VideoTitle"
-    description: str = "VideoDescription"
-    archive_id: str = "archiveid"
-    playlists: str = ""
-    uploader: str = ""
-    def __str__(self):
-        return super().__repr__()
 
-class Playlist(BaseModel):
-    id_: int =  0
-    name: str = "PlaylistName"
-    videos_ids: List[int] = [0, ...]
-    def __str__(self):
-        return super().__repr__()
+# ============================================================================
+# Database Connection
+# ============================================================================
 
-class Group(BaseModel):
-    id_: int = 0
-    name: str = "GroupName"
-    playlists_ids: List[int] = [0, ...]
-    def __str__(self):
-        return super().__repr__()
+@contextmanager
+def get_db():
+    """Context manager for database connections."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+# ============================================================================
+# Schema Initialization
+# ============================================================================
 
 def init_db():
-    # Connect to SQLite and create tables
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
+    """Initialize database schema with proper junction tables."""
+    with get_db() as conn:
+        conn.executescript('''
+            CREATE TABLE IF NOT EXISTS groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );
 
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS videos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            description TEXT, 
-            archive_id TEXT
-        )
+            CREATE TABLE IF NOT EXISTS playlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS videos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                archive_id TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS playlist_groups (
+                playlist_id INTEGER NOT NULL,
+                group_id INTEGER NOT NULL,
+                PRIMARY KEY (playlist_id, group_id),
+                FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+                FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS video_playlists (
+                video_id INTEGER NOT NULL,
+                playlist_id INTEGER NOT NULL,
+                PRIMARY KEY (video_id, playlist_id),
+                FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
+                FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_playlist_groups_group ON playlist_groups(group_id);
+            CREATE INDEX IF NOT EXISTS idx_video_playlists_playlist ON video_playlists(playlist_id);
         ''')
 
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS playlists (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            videos_ids BLOB -- int32[]
-        )
-        ''')
-
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS groups (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            playlists_ids BLOB -- int32[]
-        )
-        ''')
 
 def clear_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
+    """Drop all tables. USE WITH CAUTION."""
+    with get_db() as conn:
+        conn.executescript('''
+            DROP TABLE IF EXISTS video_playlists;
+            DROP TABLE IF EXISTS playlist_groups;
+            DROP TABLE IF EXISTS videos;
+            DROP TABLE IF EXISTS playlists;
+            DROP TABLE IF EXISTS groups;
+        ''')
 
-        cursor.execute("DROP TABLE IF EXISTS videos")
-        cursor.execute("DROP TABLE IF EXISTS playlists")
-        cursor.execute("DROP TABLE IF EXISTS groups")
 
-    print("Database cleared.")
+# ============================================================================
+# Groups - CRUD
+# ============================================================================
 
-def update_playlist(playlist: str, vidid) -> int | None:
-    if not playlist or playlist.endswith(':'):
+def get_groups() -> List[Dict]:
+    """Get all groups."""
+    with get_db() as conn:
+        rows = conn.execute('SELECT id, name FROM groups ORDER BY name').fetchall()
+        return [{"id_": row["id"], "name": row["name"]} for row in rows]
+
+
+def create_group(name: str) -> int:
+    """Create a new group. Returns group_id."""
+    with get_db() as conn:
+        cursor = conn.execute('INSERT INTO groups (name) VALUES (?)', (name,))
+        if cursor.lastrowid is None:
+            raise Exception("Failed to create group")
+        return cursor.lastrowid
+
+
+def update_group(group_id: int, name: str):
+    """Rename a group."""
+    with get_db() as conn:
+        conn.execute('UPDATE groups SET name = ? WHERE id = ?', (name, group_id))
+
+
+def delete_group(group_id: int):
+    """Delete a group (associations are cascade deleted)."""
+    with get_db() as conn:
+        conn.execute('DELETE FROM groups WHERE id = ?', (group_id,))
+
+def assign_playlist_to_group(group_id: int, playlist_id: int):
+    """Add a playlist to a group (many-to-many)."""
+    with get_db() as conn:
+        conn.execute(
+            'INSERT OR IGNORE INTO playlist_groups (playlist_id, group_id) VALUES (?, ?)',
+            (playlist_id, group_id)
+        )
+
+def remove_playlist_from_group(group_id: int, playlist_id: int):
+    """Remove a playlist from a group."""
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM playlist_groups WHERE playlist_id = ? AND group_id = ?',
+            (playlist_id, group_id)
+        )
+
+# ============================================================================
+# Playlists - CRUD
+# ============================================================================
+
+def get_playlists(group_id: int) -> List[Dict]:
+    """Get all playlists in a specific group."""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT p.id, p.name
+            FROM playlists p
+            JOIN playlist_groups pg ON p.id = pg.playlist_id
+            WHERE pg.group_id = ?
+            ORDER BY p.name
+        ''', (group_id,)).fetchall()
+        return [{"id_": row["id"], "name": row["name"]} for row in rows]
+
+
+def get_orphaned_playlists() -> List[Dict]:
+    """Get playlists not assigned to any group."""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT p.id, p.name
+            FROM playlists p
+            LEFT JOIN playlist_groups pg ON p.id = pg.playlist_id
+            WHERE pg.group_id IS NULL
+            ORDER BY p.name
+        ''').fetchall()
+        return [{"id_": row["id"], "name": row["name"]} for row in rows]
+
+
+def create_playlist(name: str) -> int:
+    """Create a new playlist. Returns playlist_id."""
+    with get_db() as conn:
+        cursor = conn.execute('INSERT INTO playlists (name) VALUES (?)', (name,))
+        if cursor.lastrowid is None:
+            raise Exception("Failed to create playlist")
+        return cursor.lastrowid
+
+
+def update_playlist(playlist_id: int, name: str):
+    """Rename a playlist."""
+    with get_db() as conn:
+        conn.execute('UPDATE playlists SET name = ? WHERE id = ?', (name, playlist_id))
+
+
+def delete_playlist(playlist_id: int):
+    """Delete a playlist (associations are cascade deleted)."""
+    with get_db() as conn:
+        conn.execute('DELETE FROM playlists WHERE id = ?', (playlist_id,))
+
+
+
+def assign_video_to_playlist(playlist_id: int, video_id: int):
+    """Add a video to a playlist (many-to-many)."""
+    with get_db() as conn:
+        conn.execute(
+            'INSERT OR IGNORE INTO video_playlists (video_id, playlist_id) VALUES (?, ?)',
+            (video_id, playlist_id)
+        )
+
+
+def remove_video_from_playlist(playlist_id: int, video_id: int):
+    """Remove a video from a playlist."""
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM video_playlists WHERE video_id = ? AND playlist_id = ?',
+            (video_id, playlist_id)
+        )
+
+
+# ============================================================================
+# Videos - CRUD
+# ============================================================================
+
+def get_videos(playlist_id: int) -> List[Dict]:
+    """Get all videos in a specific playlist."""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT v.id, v.title, v.description, v.archive_id
+            FROM videos v
+            JOIN video_playlists vp ON v.id = vp.video_id
+            WHERE vp.playlist_id = ?
+            ORDER BY v.title
+        ''', (playlist_id,)).fetchall()
+        return [{
+            "id_": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "archive_id": row["archive_id"]
+        } for row in rows]
+
+
+def get_orphaned_videos() -> List[Dict]:
+    """Get videos not assigned to any playlist."""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT v.id, v.title, v.description, v.archive_id
+            FROM videos v
+            LEFT JOIN video_playlists vp ON v.id = vp.video_id
+            WHERE vp.playlist_id IS NULL
+            ORDER BY v.title
+        ''').fetchall()
+        return [{
+            "id_": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "archive_id": row["archive_id"]
+        } for row in rows]
+
+
+def create_video(title: str, description: str, archive_id: str) -> int:
+    """Create a new video. Returns video_id."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'INSERT INTO videos (title, description, archive_id) VALUES (?, ?, ?)',
+            (title, description, archive_id)
+        )
+        if cursor.lastrowid is None:    
+            raise Exception("Failed to create video")
+        return cursor.lastrowid
+
+
+def update_video(video_id: int, title: Optional[str] = None, 
+                 description: Optional[str] = None, archive_id: Optional[str] = None):
+    """Update video metadata. Only updates provided fields."""
+    updates = []
+    params = []
+    
+    if title is not None:
+        updates.append('title = ?')
+        params.append(title)
+    if description is not None:
+        updates.append('description = ?')
+        params.append(description)
+    if archive_id is not None:
+        updates.append('archive_id = ?')
+        params.append(archive_id)
+    
+    if not updates:
+        return
+    
+    params.append(video_id)
+    with get_db() as conn:
+        conn.execute(
+            f'UPDATE videos SET {", ".join(updates)} WHERE id = ?',
+            params
+        )
+
+
+def delete_video(video_id: int):
+    """Delete a video (associations are cascade deleted)."""
+    with get_db() as conn:
+        conn.execute('DELETE FROM videos WHERE id = ?', (video_id,))
+
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
+
+def get_video_by_archive_id(archive_id: str) -> Optional[Dict]:
+    """Find a video by its archive_id."""
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT id, title, description, archive_id FROM videos WHERE archive_id = ?',
+            (archive_id,)
+        ).fetchone()
+        
+        if row:
+            return {
+                "id_": row["id"],
+                "title": row["title"],
+                "description": row["description"],
+                "archive_id": row["archive_id"]
+            }
         return None
 
-    tree = [e for e in playlist.split(':') if e]
-    playlist_name = tree.pop() if tree else None
-    group_name = tree.pop() if tree else None
 
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-
-        # Insert or find playlist
-        cursor.execute("SELECT id, videos_ids FROM playlists WHERE name = ?", (playlist_name,))
-        row = cursor.fetchone()
-        if row:
-            playlist_id, videos_ids = row
-            blist = BlobList(videos_ids)
-            blist.add(vidid)
-            cursor.execute(
-                "UPDATE playlists SET videos_ids = ? WHERE id = ?",
-                (blist.to_bytes(), playlist_id)
-            )
-        else:
-            blist = BlobList()
-            blist.add(vidid)
-            cursor.execute(
-                "INSERT INTO playlists (name, videos_ids) VALUES (?, ?)",
-                (playlist_name, blist.to_bytes())
-            )
-            playlist_id = cursor.lastrowid
-
-
-        if group_name:
-            # Insert or find group
-            cursor.execute("SELECT id, playlists_ids FROM groups WHERE name = ?", (group_name,))
-            row = cursor.fetchone()
-            plist = BlobList()
-            if row:
-                group_id, blob = row
-                plist = BlobList(blob or b'')
-            else:
-                cursor.execute(
-                    "INSERT INTO groups (name, playlists_ids) VALUES (?, ?)",
-                    (group_name, b'')
-                )
-                group_id = cursor.lastrowid
-
-            # Add playlist ID to group if not already there
-            if plist.add(playlist_id):
-                cursor.execute(
-                    "UPDATE groups SET playlists_ids = ? WHERE id = ?",
-                    (plist.to_bytes(), group_id)
-                )
-
-    return playlist_id
-
-def add_video(vid: Video):
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id FROM videos WHERE archive_id = ?", 
-            (vid.archive_id,)
-        )
-        row = cursor.fetchone()
-        print('    duplicates:', row)
-        if row:
-            vid.id_ = row[0]    
-            cursor.execute(
-                "UPDATE videos SET title = ?, description = ?, archive_id = ? WHERE id = ?",
-                (vid.title, vid.description, vid.archive_id, vid.id_)
-            )
-        else:
-            cursor.execute(
-                "INSERT INTO videos (title, description, archive_id) VALUES (?, ?, ?)",
-                (vid.title, vid.description, vid.archive_id)
-            )
-            vid.id_ = cursor.lastrowid
-    return vid.id_
-
-
-def add_to_db(vid: Video):
-    vidid = add_video(vid)
-    for pl in vid.playlists.split(';'):
-        if not pl: continue
-        update_playlist(pl, vidid)
-
-def process_result(result):
-    id_ = result["identifier"]
-    item = ia.get_item(id_)
-    print(id_, end=': ')
-    vid = Video(**item.metadata, archive_id=id_)
-    print(vid)
-    if vid.uploader in trusted_uploaders:
-        add_to_db(vid)
-        return 1
-    else:
-        print("    not mine, uploader:", vid.uploader)
-        return 0
-
-def update_db():
-    query = (
-        'Subject:"ChasidusTV" AND '
-        'Mediatype:movies'
-    )
-    fields=[
-        'identifier'
-    ]
-    amount = 0
-    print(query)
-    search = ia.search_items(
-        query, 
-        fields=fields,
-        max_retries=20,
-    )
-    print(search)
-    for result in search:
-        amount += process_result(result)
-    print(f"added {amount} videos")
-
-def print_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-
-        # Get all table names
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cursor.fetchall()
-
-        # Loop through all tables and print their contents
-        for table in tables:
-            table_name = table[0]
-            print(f"\n--- Table: {table_name} ---")
-
-            # Get column names
-            cursor.execute(f"PRAGMA table_info({table_name});")
-            columns = [col[1] for col in cursor.fetchall()]
-            print("Columns:", columns)
-
-            # Get all rows
-            cursor.execute(f"SELECT * FROM {table_name};")
-            rows = cursor.fetchall()
-
-            # Print each row
-            for row in rows:
-                print(row)
-
-def get_videos(playlist_id):  # get videos of a playlist
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-
-        # Get videos_ids blob
-        cursor.execute("SELECT videos_ids FROM playlists WHERE id = ?", (playlist_id,))
-        row = cursor.fetchone()
-        if not row or not row[0]:
-            return []
-
-        blist = BlobList(row[0])
-        video_ids = blist.to_list()
-
-        # Use SQL IN to fetch all videos
-        query = f"SELECT id, title, description, archive_id FROM videos WHERE id IN ({','.join('?' for _ in video_ids)})"
-        cursor.execute(query, video_ids)
-        rows = cursor.fetchall()
-
+def get_all_videos() -> List[Dict]:
+    """Get all videos (for admin panel)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT id, title, description, archive_id FROM videos ORDER BY title'
+        ).fetchall()
         return [{
-            "id_": row[0],
-            "title": row[1],
-            "description": row[2],
-            "archive_id": row[3]
-        } for row in rows]
-
-def get_playlists(group_id):  # get playlists of a group
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT playlists_ids FROM groups WHERE id = ?", (group_id,))
-        row = cursor.fetchone()
-        if not row or not row[0]:
-            return []
-
-        blist = BlobList(row[0])
-        playlist_ids = blist.to_list()
-
-        query = f"SELECT id, name FROM playlists WHERE id IN ({','.join('?' for _ in playlist_ids)})"
-        cursor.execute(query, playlist_ids)
-        rows = cursor.fetchall()
-
-        return [{
-            "id_": row[0], 
-            "name": row[1]
+            "id_": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "archive_id": row["archive_id"]
         } for row in rows]
 
 
-    
-def get_groups(): # al
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM groups")
-        rows = cursor.fetchall()
-        return [{
-            "id_": row[0], 
-            "name": row[1]
-        } for row in rows]
-
-def do_all():
-    clear_db()
-    init_db()
-    update_db()
-    # print_db()
-
-if __name__=="__main__":
-    # update_db()
-    do_all()
+if __name__ == "__main__":
+    print("Database service is to meant to be standalone")
