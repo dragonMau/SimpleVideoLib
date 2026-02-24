@@ -225,33 +225,3 @@ def _assign_video_from_legacy_format(video_id: int, playlists_str: str):
         
         # Assign video to playlist
         db.assign_video_to_playlist(playlist_id, video_id)
-
-
-# ============================================================================
-# Main Entry Point
-# ============================================================================
-
-def run_migration(interactive: bool = True):
-    """
-    Run the one-time migration. When `interactive` is True the function
-    prompts for confirmation; when False it proceeds without prompting.
-    """
-    print("Running one-time migration from Archive.org...")
-    print("This will:")
-    print("  1. Clear existing database")
-    print("  2. Reinitialize schema")
-    print("  3. Scan Archive.org")
-    print("  4. Import all trusted videos")
-    print()
-
-    proceed = True
-    if interactive:
-        response = input("Continue? (yes/no): ")
-        proceed = response.lower() == 'yes'
-
-    if proceed:
-        db.clear_db()
-        db.init_db()
-        migrate_from_archive()
-    else:
-        print("Cancelled.")

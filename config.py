@@ -8,12 +8,14 @@ HOME_DIR = os.path.abspath(os.path.dirname(__file__))
 
 STATIC_DIR = os.path.join(HOME_DIR, "static")
 STATIC_FILES = [
+    "script.js",
     "script_client.js",
     "script_admin.js",
-    "script.js",
+    "script_panel.js",
     "styles.css",
     "styles_client.css",
     "styles_admin.css",
+    "styles_panel.css",
     "config.json"
 ]
 NPM_DIR = os.path.join(HOME_DIR, "npm")

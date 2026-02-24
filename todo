@@ -1,10 +1,26 @@
 configure CSP
 
 add admin panel - in progress
-    making sketch with upload method
-    add autofill of options
-    make dialogs from js script
-    make most admin things recieved from server on login
-    make admin things separate from user things
+    login page - done (/admin -> /panel)
 
-setup proper db update - i will use local-only
+    write methods to store archive org state (separate db table?)
+    
+    add window to optional scan all and view differrences
+       and  show time of last archive org scan
+    
+    add ability to scan only one item by id
+
+    sort items in difference menu by last updated
+    show their metadata briefly, playlists.
+
+    groups to separate box
+
+    playlists to separate box
+
+    add filter text panel to find videos quicker
+
+    split videos to archive-only:archive-different: 
+
+add some statistics gathering
+
+add data usage policy page
