@@ -115,14 +115,12 @@ def update_video_file_on_archive(archive_id: str, new_video_file_path: str):
 # One-Time Migration from Archive.org
 # ============================================================================
 
-def migrate_from_archive():
+def scan_archive(search_id='*'):
     """
-    ONE-TIME MIGRATION: Scan Archive.org for ChasidusTV videos
-    and populate the database.
-    
-    This replaces your old update_db() function.
-    Run this once, then never again.
+    Updates archive caches
     """
+    if not search_id: return
+
     query = 'Subject:"ChasidusTV" AND Mediatype:movies'
     fields = ['identifier']
     
@@ -133,21 +131,21 @@ def migrate_from_archive():
     skipped_count = 0
     
     for result in search:
-        archive_id = result["identifier"]
+        search_id = result["identifier"]
         
         # Check if already in database
-        existing = db.get_video_by_archive_id(archive_id)
+        existing = db.get_video_by_archive_id(search_id)
         if existing:
-            print(f"  SKIP (exists): {archive_id}")
+            print(f"  SKIP (exists): {search_id}")
             skipped_count += 1
             continue
         
         # Fetch metadata
         try:
-            metadata = ia().get_item(archive_id).metadata
-            print(f"  FOUND: {archive_id} - {metadata['title']}")
+            metadata = ia().get_item(search_id).metadata
+            print(f"  FOUND: {search_id} - {metadata['title']}")
         except Exception as e:
-            print(f"  ERROR fetching {archive_id}: {e}")
+            print(f"  ERROR fetching {search_id}: {e}")
             continue
         
         # Filter by trusted uploaders
@@ -160,7 +158,7 @@ def migrate_from_archive():
         video_id = db.create_video(
             title=metadata["title"],
             description=metadata["description"],
-            archive_id=archive_id
+            archive_id=search_id
         )
         
         # Parse hierarchical playlist structure from metadata if it exists

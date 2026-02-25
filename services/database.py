@@ -69,20 +69,97 @@ def init_db():
                 FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
             );
 
+            -- ------------------------------------- /*
+            -- ------------------------------------- /*
+            -- ------------------------------------- /*
+
+            REATE TABLE IF NOT EXISTS archive_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS archive_playlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS archive_videos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                archive_id TEXT NOT NULL UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS archive_playlist_groups (
+                playlist_id INTEGER NOT NULL,
+                group_id INTEGER NOT NULL,
+                PRIMARY KEY (playlist_id, group_id),
+                FOREIGN KEY (playlist_id) REFERENCES archive_playlists(id) ON DELETE CASCADE,
+                FOREIGN KEY (group_id) REFERENCES archive_groups(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS archive_video_playlists (
+                video_id INTEGER NOT NULL,
+                playlist_id INTEGER NOT NULL,
+                PRIMARY KEY (video_id, playlist_id),
+                FOREIGN KEY (video_id) REFERENCES archive_videos(id) ON DELETE CASCADE,
+                FOREIGN KEY (playlist_id) REFERENCES archive_playlists(id) ON DELETE CASCADE
+            );
+
+            -- ------------------------------------- */
+            -- ------------------------------------- */
+            -- ------------------------------------- */
+
+            CREATE TABLE IF NOT EXISTS sync_status (
+                id INTEGER NOT NULL,
+                item_type INTEGER,                -- 1:Video, 2:Playlist, 3:Group, 4:Video-Playlist, 5:Group-Playlist
+                is_remote BOOLEAN DEFAULT 1,      -- 0: Both,  1: Remote,
+                is_hidden BOOLEAN DEFAULT 0,      -- 0: Shown, 1: Hidden,
+                is_differ BOOLEAN DEFAULT 1,      -- 0: Clean, 1: Needs Revision,
+
+                last_archive_sync DATETIME,
+                last_local_edit DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+                PRIMARY KEY (id, item_type)
+            );
+
+            CREATE VIEW IF NOT EXISTS vw_groups AS
+            SELECT 
+                g.id, 
+                g.name, 
+                COALESCE(s.is_hidden, 0) AS is_hidden,
+                COALESCE(s.is_differ, 1) AS is_differ,
+                COALESCE(s.is_remote, 0) AS is_remote
+            FROM groups g
+            LEFT JOIN sync_status s ON g.id = s.id AND s.item_type = 3;
+
+            CREATE VIEW IF NOT EXISTS vw_playlists AS
+            SELECT 
+                p.id, 
+                p.name, 
+                COALESCE(s.is_hidden, 0) AS is_hidden,
+                COALESCE(s.is_differ, 1) AS is_differ,
+                COALESCE(s.is_remote, 0) AS is_remote
+            FROM playlists p
+            LEFT JOIN sync_status s ON p.id = s.id AND s.item_type = 2;
+
+            CREATE VIEW IF NOT EXISTS vw_videos AS
+            SELECT 
+                v.id, 
+                v.title, 
+                v.description,
+                v.archive_id,
+                COALESCE(s.is_hidden, 0) AS is_hidden,
+                COALESCE(s.is_differ, 1) AS is_differ,
+                COALESCE(s.is_remote, 0) AS is_remote
+            FROM videos v
+            LEFT JOIN sync_status s ON v.id = s.id AND s.item_type = 1;
+
+
+            CREATE INDEX IF NOT EXISTS idx_sync_is_hidden ON sync_status(is_hidden);
+            CREATE INDEX IF NOT EXISTS idx_sync_item_type ON sync_status(item_type);
             CREATE INDEX IF NOT EXISTS idx_playlist_groups_group ON playlist_groups(group_id);
             CREATE INDEX IF NOT EXISTS idx_video_playlists_playlist ON video_playlists(playlist_id);
-        ''')
-
-
-def clear_db():
-    """Drop all tables. USE WITH CAUTION."""
-    with get_db() as conn:
-        conn.executescript('''
-            DROP TABLE IF EXISTS video_playlists;
-            DROP TABLE IF EXISTS playlist_groups;
-            DROP TABLE IF EXISTS videos;
-            DROP TABLE IF EXISTS playlists;
-            DROP TABLE IF EXISTS groups;
         ''')
 
 
@@ -93,7 +170,7 @@ def clear_db():
 def get_groups() -> List[Dict]:
     """Get all groups."""
     with get_db() as conn:
-        rows = conn.execute('SELECT id, name FROM groups ORDER BY name').fetchall()
+        rows = conn.execute('SELECT id, name FROM vw_groups WHERE is_hidden = 0 ORDER BY name').fetchall()
         return [{"id_": row["id"], "name": row["name"]} for row in rows]
 
 
@@ -142,26 +219,12 @@ def get_playlists(group_id: int) -> List[Dict]:
     with get_db() as conn:
         rows = conn.execute('''
             SELECT p.id, p.name
-            FROM playlists p
+            FROM vw_playlists p
             JOIN playlist_groups pg ON p.id = pg.playlist_id
-            WHERE pg.group_id = ?
+            WHERE pg.group_id = ? AND p.is_hidden = 0
             ORDER BY p.name
         ''', (group_id,)).fetchall()
         return [{"id_": row["id"], "name": row["name"]} for row in rows]
-
-
-def get_orphaned_playlists() -> List[Dict]:
-    """Get playlists not assigned to any group."""
-    with get_db() as conn:
-        rows = conn.execute('''
-            SELECT p.id, p.name
-            FROM playlists p
-            LEFT JOIN playlist_groups pg ON p.id = pg.playlist_id
-            WHERE pg.group_id IS NULL
-            ORDER BY p.name
-        ''').fetchall()
-        return [{"id_": row["id"], "name": row["name"]} for row in rows]
-
 
 def create_playlist(name: str) -> int:
     """Create a new playlist. Returns playlist_id."""
@@ -212,9 +275,9 @@ def get_videos(playlist_id: int) -> List[Dict]:
     with get_db() as conn:
         rows = conn.execute('''
             SELECT v.id, v.title, v.description, v.archive_id
-            FROM videos v
+            FROM vw_videos v
             JOIN video_playlists vp ON v.id = vp.video_id
-            WHERE vp.playlist_id = ?
+            WHERE vp.playlist_id = ? AND v.is_hidden = 0
             ORDER BY v.title
         ''', (playlist_id,)).fetchall()
         return [{
@@ -223,25 +286,6 @@ def get_videos(playlist_id: int) -> List[Dict]:
             "description": row["description"],
             "archive_id": row["archive_id"]
         } for row in rows]
-
-
-def get_orphaned_videos() -> List[Dict]:
-    """Get videos not assigned to any playlist."""
-    with get_db() as conn:
-        rows = conn.execute('''
-            SELECT v.id, v.title, v.description, v.archive_id
-            FROM videos v
-            LEFT JOIN video_playlists vp ON v.id = vp.video_id
-            WHERE vp.playlist_id IS NULL
-            ORDER BY v.title
-        ''').fetchall()
-        return [{
-            "id_": row["id"],
-            "title": row["title"],
-            "description": row["description"],
-            "archive_id": row["archive_id"]
-        } for row in rows]
-
 
 def create_video(title: str, description: str, archive_id: str) -> int:
     """Create a new video. Returns video_id."""

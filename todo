@@ -4,7 +4,11 @@ add admin panel - in progress
     login page - done (/admin -> /panel)
 
     write methods to store archive org state (separate db table?)
+        create mirror table - done
+        add filtering to database methods (done)
+        add admin panel methods
     
+
     add window to optional scan all and view differrences
        and  show time of last archive org scan
     
@@ -19,8 +23,15 @@ add admin panel - in progress
 
     add filter text panel to find videos quicker
 
-    split videos to archive-only:archive-different: 
+    add archive-ignore tag
+    split videos to archive-only:archive-newer:archive-older:archive-same/ignore:local-only
+
+    add panel scan logged in/not -> /admin to login if not
+
+add video url, move it from session storage to url
 
 add some statistics gathering
 
 add data usage policy page
+
+add admin panel as admin. using dns (namecheap) and flask routing (subdomain)
