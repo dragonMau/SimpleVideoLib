@@ -26,18 +26,3 @@ async function postData(url, data = {}) {
     const answer = await response.json();
     return answer;
 }
-
-// --- Render Google login button ---
-function renderGoogleButton() {
-    const googleButton = document.getElementById("google_button");
-    googleButton.innerHTML = "";
-    google.accounts.id.renderButton(
-        googleButton,
-        {
-            size: "medium",
-            type: "icon",
-            theme: "filled_blue",
-            text: "signin"
-        }
-    );
-}

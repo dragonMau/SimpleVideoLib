@@ -8,9 +8,9 @@ static = Blueprint("static", __name__)
 def serve_index():
     return render_template("index.html", google_cid=GOOGLE_CLIENT_ID)
 
-@static.route("/admin")
+@static.route("/login")
 def login():
-    return render_template("admin.html", google_cid=GOOGLE_CLIENT_ID)
+    return render_template("login.html", google_cid=GOOGLE_CLIENT_ID)
 
 @static.route("/<file_name>")
 def serve_allowed_static(file_name):

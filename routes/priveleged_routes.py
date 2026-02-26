@@ -4,6 +4,7 @@ from typing import Any
 from flask import Blueprint, abort, redirect, request, session, url_for, render_template
 from config import TEST, trusted_subs, GOOGLE_CLIENT_ID
 from time import time
+import services.database as db
 
 
 priv_api = Blueprint("priv_api", __name__)
@@ -16,11 +17,13 @@ def is_trusted():
       user.get("sub") in trusted_subs:
         return
     else:
+        if request.endpoint == 'priv_api.panel': 
+            return redirect("/admin")
         return {"error": "Unauthorized"}, 401
 
 
 @priv_api.route("/panel")
-def login():
+def panel():
     return render_template("panel.html", google_cid=GOOGLE_CLIENT_ID)
 
 @priv_api.route("/logout", methods=["POST"])
@@ -33,3 +36,7 @@ def get_picture():
     return {
         "picture": session["user"].get("picture", "")
     }, 200
+
+@priv_api.route("/admin/all_videos")
+def send_all_videos():
+    return db.get_all_videos()

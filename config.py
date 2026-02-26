@@ -10,11 +10,11 @@ STATIC_DIR = os.path.join(HOME_DIR, "static")
 STATIC_FILES = [
     "script.js",
     "script_client.js",
-    "script_admin.js",
+    "script_login.js",
     "script_panel.js",
     "styles.css",
     "styles_client.css",
-    "styles_admin.css",
+    "styles_login.css",
     "styles_panel.css",
     "config.json"
 ]

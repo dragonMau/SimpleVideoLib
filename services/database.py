@@ -73,7 +73,7 @@ def init_db():
             -- ------------------------------------- /*
             -- ------------------------------------- /*
 
-            REATE TABLE IF NOT EXISTS archive_groups (
+            CREATE TABLE IF NOT EXISTS archive_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE
             );
@@ -355,18 +355,30 @@ def get_video_by_archive_id(archive_id: str) -> Optional[Dict]:
 
 
 def get_all_videos() -> List[Dict]:
-    """Get all videos (for admin panel)."""
+    """
+    Get all videos (for admin panel).
+    """
     with get_db() as conn:
-        rows = conn.execute(
-            'SELECT id, title, description, archive_id FROM videos ORDER BY title'
-        ).fetchall()
+        rows = conn.execute('''
+            SELECT id, title, description, archive_id, is_hidden, is_differ, is_remote 
+            FROM vw_videos 
+            ORDER BY title
+        ''').fetchall()
         return [{
             "id_": row["id"],
+            "archive_id": row["archive_id"],
             "title": row["title"],
             "description": row["description"],
-            "archive_id": row["archive_id"]
+            "is_hidden": row["is_hidden"],
+            "is_differ": row["is_differ"],
+            "is_remote": row["is_remote"]
         } for row in rows]
 
+def get_all_archive_videos() -> List[Dict]:
+    """
+    Get all videos archive cache (for admin panel).
+    """
+    ...
 
 if __name__ == "__main__":
     print("Database service is to meant to be standalone")
