@@ -11,14 +11,14 @@ priv_api = Blueprint("priv_api", __name__)
 
 @priv_api.before_request
 def is_trusted():
-    user: dict[str, Any] = session.get("user")
+    user: None| dict[str, Any] = session.get("user")
     if user and \
       user.get("exp", 0) >= time() and \
       user.get("sub") in trusted_subs:
         return
     else:
         if request.endpoint == 'priv_api.panel': 
-            return redirect("/admin")
+            return redirect("/login")
         return {"error": "Unauthorized"}, 401
 
 

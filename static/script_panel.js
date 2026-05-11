@@ -77,7 +77,7 @@ async function checkPanelAccess() {
         await fetchData("/get_picture");
     } catch (err) {
         if (err.status === 401) {
-        window.location.replace("/admin");
+        window.location.replace("/login");
         } else {
             document.getElementById("status").innerText = "Server error.";
         }

@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-client-id" content="{{ google_cid }}">
+
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles_panel.css">
     <title>Chasidus TV - Panel</title>
 </head>
 
@@ -30,7 +33,7 @@
 
     <a>Welcome to control Panel!</a>
     <script src="/script.js"></script>
-    <button onclick="(async () => { await postData('/logout', {}); window.location.href = '/admin'; })()">
+    <button onclick="(async () => { await postData('/logout', {}); window.location.href = '/login'; })()">
         Logout
     </button>
     <div id="videos_list">

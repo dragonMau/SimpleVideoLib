@@ -62,7 +62,7 @@ def login():
     session['user'] = {
         'sub': idinfo.get("sub"),
         'picture': idinfo.get('picture'),
-        'exp': int(idinfo.get("exp"))
+        'exp': int(idinfo.get("exp") or 0)
     }
 
     if idinfo.get("sub") in trusted_subs:
